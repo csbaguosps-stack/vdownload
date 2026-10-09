@@ -1,0 +1,9 @@
+{
+    "instagram_sessionid": "",
+    "custom_user_agent": "",
+    "enable_yt_dlp": true,
+    "auto_compress": true,
+    "compression_quality": "balanced",
+    "audio_bitrate": "128k",
+    "theme": "light"
+}

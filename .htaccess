@@ -1,0 +1,11 @@
+# VDownload Pro - Apache Configuration
+# Copyright (c) 2026 cs.baguosps@gmail.com
+# Developed by: cs.baguosps@gmail.com
+
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^(.*)$ index.php?_route=$1 [QSA,L]
+</IfModule>

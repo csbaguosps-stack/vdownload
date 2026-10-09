@@ -1,0 +1,55 @@
+{
+  "manifest_version": 3,
+  "name": "VDownload Pro - Video Downloader Standalone",
+  "version": "1.2.0",
+  "description": "Pengunduh video YouTube, TikTok, Instagram Reels, dan Shopee Video resolusi Full HD tanpa watermark & musik MP3 langsung di browser. by cs.baguosps@gmail.com",
+  "author": "cs.baguosps@gmail.com",
+  "homepage_url": "http://localhost/vdownload/",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "VDownload Pro Standalone Downloader",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "permissions": [
+    "downloads",
+    "contextMenus",
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://*.youtube.com/*",
+    "https://*.youtu.be/*",
+    "https://*.googlevideo.com/*",
+    "https://*.tikwm.com/*",
+    "https://*.tiktok.com/*",
+    "https://*.instagram.com/*",
+    "https://*.shopee.co.id/*",
+    "https://*.shopee.com/*",
+    "https://*.susercontent.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.youtube.com/*",
+        "https://*.youtu.be/*",
+        "https://*.instagram.com/*",
+        "https://*.tiktok.com/*",
+        "https://*.shopee.co.id/*"
+      ],
+      "js": ["content.js"],
+      "css": ["content.css"]
+    }
+  ]
+}

@@ -1,0 +1,1041 @@
+/**
+ * VDownload Pro - Ultra Premium Modern Styling (Modern White & Blue)
+ * Copyright (c) 2026 cs.baguosps@gmail.com
+ * All rights reserved.
+ * 
+ * Developed by: cs.baguosps@gmail.com
+ * Fully responsive, clean, high-contrast, modern layout
+ */
+
+:root {
+    --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    
+    /* Background & Surfaces (Modern Crisp White & Blue Theme) */
+    --bg-page: #f8fafc;
+    --bg-card: rgba(255, 255, 255, 0.95);
+    --bg-card-solid: #ffffff;
+    --bg-card-hover: #ffffff;
+    --bg-surface: #ffffff;
+    --bg-surface-alt: #f1f5f9;
+    --border-glass: rgba(226, 232, 240, 0.95);
+    --border-card: #e2e8f0;
+    --border-input: #cbd5e1;
+
+    /* Text Colors */
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    --text-light: #94a3b8;
+
+    /* Modern Blue Palette */
+    --color-blue-primary: #2563eb;
+    --color-blue-dark: #1d4ed8;
+    --color-blue-deep: #1e3a8a;
+    --color-blue-light: #60a5fa;
+    --color-blue-sky: #0ea5e9;
+    --color-blue-ice: #eff6ff;
+
+    /* Platform Brand Colors */
+    --color-tiktok: #0284c7;
+    --color-tiktok-dark: #0369a1;
+    --color-ig-1: #f09433;
+    --color-ig-2: #dc2743;
+    --color-ig-3: #bc1888;
+    --color-shopee: #ee4d2d;
+    --color-shopee-dark: #d03b1d;
+
+    /* Primary Accent Gradients */
+    --gradient-primary: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0284c7 100%);
+    --gradient-primary-hover: linear-gradient(135deg, #1e40af 0%, #1d4ed8 50%, #0369a1 100%);
+    --gradient-shopee: linear-gradient(135deg, #ee4d2d 0%, #ff5722 100%);
+    --gradient-tiktok: linear-gradient(135deg, #0284c7 0%, #0ea5e9 60%, #06b6d4 100%);
+    --gradient-instagram: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+
+    /* Modern Shadows */
+    --shadow-soft: 0 4px 20px -2px rgba(37, 99, 235, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+    --shadow-card: 0 10px 30px -5px rgba(37, 99, 235, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.03);
+    --shadow-card-hover: 0 20px 40px -8px rgba(37, 99, 235, 0.16), 0 6px 16px -2px rgba(15, 23, 42, 0.05);
+    --shadow-button: 0 4px 14px rgba(37, 99, 235, 0.3);
+}
+
+body {
+    font-family: var(--font-main);
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Background Ambient Glow: Modern White & Blue */
+.bg-modern-white-blue {
+    background: 
+        radial-gradient(circle at 12% 10%, rgba(37, 99, 235, 0.07) 0%, transparent 45%),
+        radial-gradient(circle at 88% 18%, rgba(14, 165, 233, 0.08) 0%, transparent 45%),
+        radial-gradient(circle at 50% 85%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
+        linear-gradient(180deg, #f0f7ff 0%, #f8fafc 400px, #ffffff 100%);
+    background-attachment: fixed;
+}
+
+.bg-modern-footer {
+    background: #ffffff;
+    border-top: 1px solid var(--border-card);
+}
+
+/* Typography Utilities */
+.fw-black { font-weight: 900; }
+.fw-extrabold { font-weight: 800; }
+.tracking-wider { letter-spacing: 0.06em; }
+
+.hero-title {
+    color: #0f172a;
+    letter-spacing: -0.025em;
+    font-size: clamp(2rem, 3.5vw + 1rem, 3.25rem);
+    line-height: 1.15;
+}
+
+.hero-subtitle {
+    font-size: clamp(1rem, 1.2vw + 0.5rem, 1.15rem);
+    line-height: 1.6;
+}
+
+.gradient-text {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.brand-gradient-tiktok {
+    background: var(--gradient-tiktok);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.brand-gradient-ig {
+    background: var(--gradient-instagram);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.brand-gradient-shopee {
+    background: var(--gradient-shopee);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.text-shopee-accent {
+    color: var(--color-shopee) !important;
+}
+
+/* Glassmorphism Navigation */
+.glass-nav {
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.9) !important;
+    box-shadow: 0 4px 20px rgba(37, 99, 235, 0.04);
+    transition: all 0.3s ease;
+}
+
+.brand-logo-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--gradient-primary);
+    color: #fff;
+    font-size: 1.25rem;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+    flex-shrink: 0;
+}
+
+.brand-logo-icon.sm {
+    width: 30px;
+    height: 30px;
+    font-size: 1rem;
+}
+
+.navbar-light .navbar-nav .nav-link {
+    color: #475569;
+    font-weight: 500;
+    padding: 0.5rem 0.85rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.navbar-light .navbar-nav .nav-link:hover,
+.navbar-light .navbar-nav .nav-link.active {
+    color: var(--color-blue-primary);
+    background-color: rgba(37, 99, 235, 0.06);
+}
+
+/* Hero Badge */
+.hero-badge {
+    background: rgba(37, 99, 235, 0.08);
+    border: 1px solid rgba(37, 99, 235, 0.2);
+    color: var(--color-blue-dark);
+}
+
+.badge-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #22c55e;
+    box-shadow: 0 0 8px #22c55e;
+    animation: pulseDot 2s infinite ease-in-out;
+}
+
+@keyframes pulseDot {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.6; }
+}
+
+/* Glass Cards */
+.glass-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-glass) !important;
+    border-radius: 20px;
+    box-shadow: var(--shadow-card);
+    transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-alert {
+    background: #fef2f2;
+    backdrop-filter: blur(12px);
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    border-radius: 14px;
+}
+
+/* Platform Filter Tabs Bar */
+.platform-tabs-container {
+    display: flex;
+    justify-content: center;
+}
+
+.platform-tabs-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+.btn-platform-tab {
+    background: transparent;
+    color: #475569;
+    border: none;
+    border-radius: 30px;
+    padding: 6px 16px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.btn-platform-tab:hover {
+    background: #f1f5f9;
+    color: var(--color-blue-primary);
+}
+
+.btn-platform-tab.active {
+    background: var(--gradient-primary);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+}
+
+/* Search Form Input Card */
+.search-card {
+    background: #ffffff;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 24px;
+    box-shadow: 0 15px 35px -5px rgba(37, 99, 235, 0.09), 0 4px 12px -2px rgba(15, 23, 42, 0.03);
+    padding: 6px 8px !important;
+    transition: all 0.3s ease;
+}
+
+.search-card:focus-within {
+    border-color: #2563eb !important;
+    box-shadow: 0 18px 45px -5px rgba(37, 99, 235, 0.18), 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
+.search-input-group {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 4px;
+}
+
+.search-icon-slot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 12px;
+    padding-right: 4px;
+    flex-shrink: 0;
+}
+
+.search-input {
+    border: none !important;
+    background: transparent !important;
+    font-size: 1.05rem;
+    color: #0f172a !important;
+    padding: 12px 8px !important;
+    flex: 1;
+    min-width: 0;
+}
+
+.search-input::placeholder {
+    color: #94a3b8;
+    font-weight: 400;
+}
+
+.btn-clear-action {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    padding: 6px 8px;
+    font-size: 1.1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: color 0.2s ease;
+}
+
+.btn-clear-action:hover {
+    color: #ef4444;
+}
+
+/* Modern Paste Button (Clean Blue Pill, NEVER a dark grey block!) */
+.btn-paste-action {
+    background: #eff6ff !important;
+    border: 1px solid #bfdbfe !important;
+    color: #2563eb !important;
+    padding: 8px 14px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.05);
+}
+
+.btn-paste-action:hover {
+    background: #dbeafe !important;
+    border-color: #93c5fd !important;
+    color: #1d4ed8 !important;
+    transform: translateY(-1px);
+}
+
+.btn-paste-action:active {
+    background: #bfdbfe !important;
+    color: #1e40af !important;
+    transform: translateY(0);
+}
+
+/* Submit Unduh Button */
+.btn-submit-action {
+    background: var(--gradient-primary) !important;
+    color: #ffffff !important;
+    border: none !important;
+    padding: 10px 24px;
+    border-radius: 14px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.35);
+    transition: all 0.25s ease;
+}
+
+.btn-submit-action:hover {
+    background: var(--gradient-primary-hover) !important;
+    color: #ffffff !important;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 25px rgba(37, 99, 235, 0.45);
+}
+
+.btn-submit-action:active {
+    transform: translateY(0);
+}
+
+/* Example Link Chips */
+.btn-sample-chip {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.btn-sample-chip:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+}
+
+/* Platform Badges */
+.badge-platform {
+    padding: 5px 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border-radius: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.badge-tiktok {
+    background: #e0f2fe;
+    color: #0284c7;
+    border: 1px solid #bae6fd;
+}
+
+.badge-instagram {
+    background: #ffe4e6;
+    color: #e11d48;
+    border: 1px solid #fecdd3;
+}
+
+.badge-shopee {
+    background: #ffedd5;
+    color: #c2410c;
+    border: 1px solid #fed7aa;
+}
+
+.badge-video {
+    background: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #dbeafe;
+}
+
+/* Result Container & Video Player */
+.result-card {
+    border-radius: 24px;
+}
+
+.result-header-accent {
+    height: 6px;
+    background: var(--gradient-primary);
+}
+
+.video-preview-wrapper {
+    width: 100%;
+    max-height: 480px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #0b1120;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.preview-media {
+    width: 100%;
+    max-height: 480px;
+    object-fit: contain;
+}
+
+.author-avatar-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    overflow: hidden;
+    background-color: #e2e8f0;
+    flex-shrink: 0;
+}
+
+.avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* ========================================================
+   DOWNLOAD BUTTONS (ULTRA CLEAN, HIGH CONTRAST, TIDY)
+======================================================== */
+.btn-download-option {
+    min-height: 52px;
+    padding: 12px 18px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.92rem;
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+}
+
+.btn-download-option:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+}
+
+.btn-download-title {
+    font-size: 0.92rem;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.download-pill-badge {
+    border-radius: 50px;
+    padding: 4px 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+/* 1. Shopee Master HD Button */
+.btn-shopee {
+    background: var(--gradient-shopee) !important;
+    color: #ffffff !important;
+    border: none !important;
+    box-shadow: 0 4px 15px rgba(238, 77, 45, 0.35) !important;
+}
+.btn-shopee:hover {
+    color: #ffffff !important;
+    box-shadow: 0 8px 25px rgba(238, 77, 45, 0.5) !important;
+}
+.btn-shopee .download-pill-badge {
+    background: rgba(0, 0, 0, 0.25);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* 2. TikTok True HD Button */
+.btn-tiktok-hd {
+    background: var(--gradient-tiktok) !important;
+    color: #ffffff !important;
+    border: none !important;
+    box-shadow: 0 4px 15px rgba(2, 132, 199, 0.35) !important;
+}
+.btn-tiktok-hd:hover {
+    color: #ffffff !important;
+    box-shadow: 0 8px 25px rgba(2, 132, 199, 0.5) !important;
+}
+.btn-tiktok-hd .download-pill-badge {
+    background: rgba(0, 0, 0, 0.25);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* 3. TikTok Standard SD Button */
+.btn-tiktok {
+    background: #f0f9ff !important;
+    color: #0369a1 !important;
+    border: 1.5px solid #7dd3fc !important;
+}
+.btn-tiktok:hover {
+    background: #0284c7 !important;
+    color: #ffffff !important;
+    border-color: #0284c7 !important;
+}
+.btn-tiktok .download-pill-badge {
+    background: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid #bae6fd;
+}
+.btn-tiktok:hover .download-pill-badge {
+    background: rgba(0, 0, 0, 0.2);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* 4. Instagram True HD Button */
+.btn-instagram {
+    background: var(--gradient-instagram) !important;
+    color: #ffffff !important;
+    border: none !important;
+    box-shadow: 0 4px 15px rgba(220, 39, 67, 0.35) !important;
+}
+.btn-instagram:hover {
+    color: #ffffff !important;
+    box-shadow: 0 8px 25px rgba(220, 39, 67, 0.5) !important;
+}
+.btn-instagram .download-pill-badge {
+    background: rgba(0, 0, 0, 0.25);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* 5. Web SD / Hemat Kuota Button (Mint Teal) */
+.btn-download-sd,
+.btn-outline-info {
+    background: #f0fdfa !important;
+    border: 1.5px solid #2dd4bf !important;
+    color: #0f766e !important;
+}
+.btn-download-sd:hover,
+.btn-outline-info:hover {
+    background: #0d9488 !important;
+    border-color: #0d9488 !important;
+    color: #ffffff !important;
+}
+.btn-download-sd .download-pill-badge,
+.btn-outline-info .download-pill-badge {
+    background: #ccfbf1;
+    color: #115e59;
+    border: 1px solid #99f6e4;
+}
+.btn-download-sd:hover .download-pill-badge,
+.btn-outline-info:hover .download-pill-badge {
+    background: rgba(0, 0, 0, 0.2);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* 6. Watermarked Video Button (Clear Dark Slate, NEVER Invisible White!) */
+.btn-download-wm,
+.btn-outline-light {
+    background: #f8fafc !important;
+    border: 1.5px solid #cbd5e1 !important;
+    color: #334155 !important;
+}
+.btn-download-wm:hover,
+.btn-outline-light:hover {
+    background: #e2e8f0 !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+}
+.btn-download-wm .download-pill-badge,
+.btn-outline-light .download-pill-badge {
+    background: #e2e8f0;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+}
+
+/* 7. Cover / Thumbnail Image Button (Clean Charcoal) */
+.btn-download-cover,
+.btn-outline-secondary,
+.btn-outline-danger {
+    background: #ffffff !important;
+    border: 1.5px solid #e2e8f0 !important;
+    color: #1e293b !important;
+}
+.btn-download-cover:hover,
+.btn-outline-secondary:hover,
+.btn-outline-danger:hover {
+    background: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+}
+.btn-download-cover .download-pill-badge,
+.btn-outline-secondary .download-pill-badge,
+.btn-outline-danger .download-pill-badge {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+/* 8. Audio MP3 Button (Soft Lavender Purple) */
+.btn-download-audio {
+    background: #faf5ff !important;
+    border: 1.5px solid #d8b4fe !important;
+    color: #7e22ce !important;
+}
+.btn-download-audio:hover {
+    background: #9333ea !important;
+    border-color: #9333ea !important;
+    color: #ffffff !important;
+}
+.btn-download-audio .download-pill-badge {
+    background: #f3e8ff;
+    color: #6b21a8;
+    border: 1px solid #e9d5ff;
+}
+.btn-download-audio:hover .download-pill-badge {
+    background: rgba(0, 0, 0, 0.2);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Generic Primary Gradient Fallback */
+.btn-gradient-primary {
+    background: var(--gradient-primary);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.35);
+}
+.btn-gradient-primary:hover {
+    background: var(--gradient-primary-hover);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(37, 99, 235, 0.5);
+}
+
+/* Feature Cards */
+.feature-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-card-hover);
+    border-color: rgba(37, 99, 235, 0.25) !important;
+}
+.feature-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* History Thumbnails */
+.history-thumb-wrapper {
+    width: 80px;
+    height: 110px;
+}
+.history-thumb-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Skeleton Loading Shimmer */
+.skeleton-line {
+    height: 14px;
+    background: linear-gradient(90deg, #e2e8f0 25%, #cbd5e1 50%, #e2e8f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 6px;
+}
+.skeleton-box {
+    height: 200px;
+    background: linear-gradient(90deg, #e2e8f0 25%, #cbd5e1 50%, #e2e8f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 16px;
+}
+.skeleton-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(90deg, #e2e8f0 25%, #cbd5e1 50%, #e2e8f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* Keyframe Animations */
+.animate-fade-in { animation: fadeIn 0.6s ease forwards; }
+.animate-slide-up { animation: slideUp 0.6s ease forwards; }
+.animate-zoom-in { animation: zoomIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-shake { animation: shake 0.4s ease; }
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes zoomIn {
+    from { opacity: 0; transform: scale(0.96) translateY(15px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-8px); }
+    40%, 80% { transform: translateX(8px); }
+}
+
+/* Utilities */
+.hover-blue:hover {
+    color: var(--color-blue-primary) !important;
+}
+.max-w-700 {
+    max-width: 700px;
+}
+
+/* Copyright Badge */
+.copyright-badge {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+    padding: 6px 14px;
+    border-radius: 50px;
+    font-size: 0.825rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.25s ease;
+}
+.copyright-badge:hover {
+    background: #dbeafe;
+    color: #1e40af;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+
+/* ========================================================
+   COMPREHENSIVE RESPONSIVE DESIGN (MEDIA QUERIES)
+======================================================== */
+
+/* Tablets & Medium Desktops (max-width: 991.98px) */
+@media (max-width: 991.98px) {
+    .navbar-collapse {
+        background: #ffffff;
+        border: 1px solid var(--border-card);
+        border-radius: 16px;
+        padding: 1rem;
+        margin-top: 0.75rem;
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+    }
+
+    .navbar-light .navbar-nav .nav-link {
+        padding: 0.65rem 1rem;
+        margin-bottom: 2px;
+    }
+
+    .platform-indicators {
+        justify-content: flex-start;
+        padding-top: 0.5rem;
+    }
+
+    .video-preview-wrapper {
+        max-height: 400px;
+    }
+}
+
+/* Small Tablets & Large Phones (max-width: 767.98px) */
+@media (max-width: 767.98px) {
+    main.py-5 {
+        padding-top: 2rem !important;
+        padding-bottom: 3rem !important;
+    }
+
+    .hero-title {
+        font-size: 1.85rem;
+    }
+
+    .hero-subtitle {
+        font-size: 0.95rem;
+    }
+
+    .search-card {
+        border-radius: 20px;
+        padding: 6px 8px !important;
+    }
+
+    .search-input {
+        font-size: 0.95rem;
+    }
+
+    .btn-paste-action {
+        padding: 7px 11px;
+        font-size: 0.8rem;
+    }
+
+    .btn-submit-action {
+        padding: 9px 18px;
+        font-size: 0.88rem;
+    }
+
+    .video-preview-wrapper {
+        max-height: 380px;
+    }
+
+    .result-card-body {
+        padding: 1.25rem !important;
+    }
+
+    .btn-download-option {
+        min-height: 48px;
+        padding: 10px 14px;
+        font-size: 0.86rem;
+    }
+
+    .btn-download-title {
+        font-size: 0.86rem;
+    }
+
+    .download-pill-badge {
+        font-size: 0.68rem;
+        padding: 3px 8px;
+    }
+
+    .example-links-bar {
+        font-size: 0.75rem;
+    }
+
+    .btn-sample-chip {
+        font-size: 0.72rem;
+        padding: 2px 8px;
+    }
+}
+
+/* Small Mobile Phones (max-width: 575.98px) */
+@media (max-width: 575.98px) {
+    .search-card {
+        border-radius: 18px;
+        padding: 8px !important;
+    }
+
+    .search-input-group {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .search-icon-slot {
+        padding-left: 6px;
+        padding-right: 0;
+    }
+
+    .search-input {
+        font-size: 0.9rem;
+        padding: 8px 4px !important;
+        order: 1;
+    }
+
+    .btn-clear-action {
+        order: 2;
+        padding: 4px;
+    }
+
+    .btn-paste-action {
+        order: 3;
+        padding: 6px 10px;
+        font-size: 0.78rem;
+        border-radius: 9px;
+    }
+
+    .btn-submit-action {
+        order: 4;
+        width: 100%;
+        justify-content: center;
+        margin-top: 4px;
+        padding: 11px 16px;
+        border-radius: 12px;
+        font-size: 0.92rem;
+    }
+
+    .platform-tabs-scroll {
+        padding: 2px;
+    }
+
+    .btn-platform-tab {
+        padding: 5px 12px;
+        font-size: 0.78rem;
+    }
+
+    .video-preview-wrapper {
+        max-height: 320px;
+    }
+
+    .btn-download-option {
+        padding: 9px 12px;
+    }
+}
+
+/* YouTube Brand Styles */
+.badge-youtube {
+    background: #fee2e2 !important;
+    color: #dc2626 !important;
+    border: 1px solid #fca5a5 !important;
+}
+
+.btn-youtube-hd {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35) !important;
+    border: none !important;
+}
+
+.btn-youtube-hd:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+    color: #ffffff !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.45) !important;
+}
+
+.btn-youtube {
+    background: linear-gradient(135deg, #f87171 0%, #ef4444 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 3px 10px rgba(239, 68, 68, 0.25) !important;
+    border: none !important;
+}
+
+.btn-youtube:hover {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+    color: #ffffff !important;
+    transform: translateY(-2px);
+}
+
+/* Compression Dialog & Progress Styling */
+#compressionModal .modal-content {
+    border-radius: 18px !important;
+    overflow: hidden;
+    box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.25) !important;
+}
+
+#compressionModal .progress {
+    background-color: #e2e8f0;
+    overflow: hidden;
+}
+
+#compressionModal .progress-bar {
+    transition: width 0.4s ease;
+}
+
+.shadow-2xs {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+

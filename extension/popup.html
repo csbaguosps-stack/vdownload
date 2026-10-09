@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VDownload Pro - Standalone Downloader</title>
+  <!-- Copyright (c) 2026 cs.baguosps@gmail.com - All rights reserved -->
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="popup-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <div class="brand-title">VDownload <span>Pro</span></div>
+          <div class="brand-subtitle">Standalone Downloader</div>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="btn-reload-header" id="btnReloadExtension" title="Muat Ulang / Reload Ekstensi Ini">
+          <svg class="reload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+          <span class="reload-text">Reload</span>
+        </button>
+        <div class="standalone-status-badge" title="Ekstensi Berdiri Sendiri - 100% Aman & Mandiri">
+          <span class="status-pulse-dot"></span>
+          <span class="status-label">Standalone</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="popup-nav-tabs">
+      <button class="tab-btn active" data-tab="downloaderTab">
+        <span class="tab-icon">⚡</span> Unduh Langsung
+      </button>
+      <button class="tab-btn" data-tab="toolsTab">
+        <span class="tab-icon">📖</span> Panduan & Alat
+      </button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="popup-content">
+      
+      <!-- TAB 1: STANDALONE DOWNLOADER -->
+      <section class="tab-pane active" id="downloaderTab">
+        
+        <!-- Auto Compress Info Pill -->
+        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 6px 10px; margin-bottom: 10px; font-size: 11px; color: #065f46; display: flex; align-items: center; gap: 6px; font-weight: 500;">
+          <span style="font-size: 13px;">⚡</span>
+          <span><strong>Auto-Kompres:</strong> Ukuran file hemat ~60%, kualitas Full HD tetap jernih &amp; tidak pecah.</span>
+        </div>
+
+        <!-- Active Tab Quick Box -->
+        <div class="card active-tab-card" id="activeTabSection">
+          <div class="card-header">
+            <div class="title-with-icon">
+              <span class="icon-tag">🌐</span>
+              <span class="card-title">Halaman Aktif Saat Ini</span>
+            </div>
+            <span class="platform-badge" id="detectedPlatformBadge">Mengecek...</span>
+          </div>
+          <div class="detected-url-box" id="detectedUrlBox">
+            <span class="url-text" id="detectedUrlText">Mendeteksi tautan tab...</span>
+          </div>
+          <button class="btn btn-primary w-100" id="btnDownloadActiveTab" disabled>
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span id="btnDownloadActiveLabel">Unduh Video Tab Ini (Direct)</span>
+          </button>
+        </div>
+
+        <!-- Custom URL Input Box -->
+        <div class="card quick-input-card">
+          <div class="card-header">
+            <div class="title-with-icon">
+              <span class="icon-tag">🔗</span>
+              <span class="card-title">Tempel Tautan Bebas</span>
+            </div>
+            <span class="pill-tag pill-blue">Multi-Platform</span>
+          </div>
+          <div class="input-group">
+            <input type="text" id="inputCustomUrl" placeholder="Tempel tautan YouTube, TikTok, IG, atau Shopee..." autocomplete="off">
+            <button class="btn-icon-action" id="btnPasteClipboard" title="Tempel dari Clipboard">📋</button>
+            <button class="btn-icon-action d-none" id="btnClearUrl" title="Hapus">✕</button>
+          </div>
+          <button class="btn btn-primary-gradient w-100 mt-2" id="btnExtractCustomUrl">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <span>Ekstrak & Unduh Langsung</span>
+          </button>
+        </div>
+
+        <!-- Loading State -->
+        <div class="loading-state d-none" id="loadingState">
+          <div class="loader-spinner"></div>
+          <div class="loader-text" id="loaderText">Mengekstrak video kualitas True HD...</div>
+          <div class="loader-subtext">Memproses langsung di browser tanpa server lokal</div>
+        </div>
+
+        <!-- Error Alert -->
+        <div class="error-alert d-none" id="errorAlert">
+          <div class="error-alert-header">
+            <span class="error-icon">⚠️</span>
+            <span class="error-title">Gagal Mengunduh</span>
+          </div>
+          <div class="error-alert-body" id="errorMessage">Tautan tidak valid atau video tidak ditemukan.</div>
+          <button class="btn-error-retry" id="btnErrorRetry">Coba Lagi</button>
+        </div>
+
+        <!-- Direct Result Section -->
+        <div class="result-card d-none" id="resultCard">
+          <div class="result-card-header">
+            <div class="result-platform-tag" id="resultPlatformTag">TIKTOK</div>
+            <button class="btn-close-result" id="btnCloseResult" title="Tutup Hasil">&times;</button>
+          </div>
+
+          <div class="result-media-info">
+            <div class="result-thumb-wrapper" id="resultThumbWrapper">
+              <img id="resultThumbImg" src="" alt="Thumbnail Video" class="result-thumb">
+            </div>
+            <div class="result-meta">
+              <div class="result-author" id="resultAuthor">@user</div>
+              <div class="result-caption" id="resultCaption">Judul Video</div>
+              <div class="result-badge-row">
+                <span class="quality-badge" id="resultQualityBadge">1080p Full HD</span>
+                <span class="duration-badge" id="resultDurationBadge">00:00</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Download Action Buttons List -->
+          <div class="result-downloads-list" id="resultDownloadsList">
+            <!-- Dynamic Buttons injected via JS -->
+          </div>
+
+          <!-- Notification Toast -->
+          <div class="result-toast d-none" id="resultToast">
+            <span class="toast-icon">✅</span>
+            <span class="toast-text" id="resultToastText">File berhasil diunduh ke folder Downloads!</span>
+          </div>
+
+          <div class="result-card-footer">
+            <div class="info-tag">💡 Unduhan langsung ke folder Downloads komputer Anda.</div>
+            <a href="#" class="web-fallback-link" id="btnOpenInWebResult">Buka di Web &rarr;</a>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- TAB 2: GUIDE & TOOLS -->
+      <section class="tab-pane d-none" id="toolsTab">
+        
+        <!-- Section: Reload Ekstensi Card -->
+        <div class="card reload-control-card">
+          <div class="card-header">
+            <div class="title-with-icon">
+              <span class="icon-tag">⚡</span>
+              <span class="card-title">Kontrol Ekstensi</span>
+            </div>
+            <span class="pill-tag pill-blue">1-Click Reload</span>
+          </div>
+          <p class="card-desc">
+            Muat ulang ekstensi seketika setelah memperbarui file tanpa harus membuka <code>chrome://extensions</code>.
+          </p>
+          <button class="btn btn-reload-main w-100" id="btnReloadExtensionAction" title="Muat ulang ekstensi sekarang">
+            <svg class="reload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+            <span class="reload-btn-label">Muat Ulang Ekstensi (Reload)</span>
+          </button>
+        </div>
+
+        <!-- Section: Panduan Penggunaan Standalone -->
+        <div class="card">
+          <div class="card-header">
+            <div class="title-with-icon">
+              <span class="icon-tag">💡</span>
+              <span class="card-title">Fitur Mandiri (Standalone)</span>
+            </div>
+            <span class="pill-tag pill-blue">Aman & Cepat</span>
+          </div>
+          <div class="guide-steps-list">
+            <div class="guide-step-item">
+              <div class="step-num">1</div>
+              <div class="step-desc"><strong>TikTok:</strong> Unduh True HD tanpa watermark & audio MP3 langsung ke komputer.</div>
+            </div>
+            <div class="guide-step-item">
+              <div class="step-num">2</div>
+              <div class="step-desc"><strong>Shopee Video:</strong> Resolusi Master HD stream otomatis tanpa tanda air.</div>
+            </div>
+            <div class="guide-step-item">
+              <div class="step-num">3</div>
+              <div class="step-desc"><strong>Instagram Reels:</strong> Unduh Reels publik berkualitas penuh secara instan.</div>
+            </div>
+            <div class="guide-step-item">
+              <div class="step-num">4</div>
+              <div class="step-desc"><strong>YouTube Video & Musik:</strong> Unduh video kualitas Full HD & audio musik MP3/M4A.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Tutorial Link Shortcut -->
+        <div class="tutorial-box">
+          <a href="#" class="tutorial-link" id="btnOpenTutorial" title="Buka Tutorial Cara Install & Pakai Ekstensi">
+            <span class="tutorial-text">
+              <span class="tut-icon">📖</span> Panduan Lengkap di Website
+            </span>
+            <span class="tut-badge">Buka Web &rarr;</span>
+          </a>
+        </div>
+
+        <!-- Section: Server URL Config Accordion -->
+        <details class="server-config-details">
+          <summary>⚙️ Pengaturan Alamat Web (Opsional)</summary>
+          <div class="config-content">
+            <label for="serverBaseUrlInput">Alamat Server VDownload (Opsional):</label>
+            <div class="input-group">
+              <input type="text" id="serverBaseUrlInput" value="http://localhost/vdownload">
+              <button class="btn-icon-action" id="btnSaveServerUrl">Simpan</button>
+            </div>
+            <div class="config-hint">Digunakan jika Anda ingin membuka tautan video di website lokal.</div>
+          </div>
+        </details>
+
+      </section>
+    </main>
+
+    <!-- Footer Copyright -->
+    <footer class="popup-footer">
+      <div class="footer-copy">
+        &copy; 2026 <strong>VDownload Pro</strong>. All rights reserved.
+      </div>
+      <div class="footer-credit">
+        Created by: <a href="mailto:cs.baguosps@gmail.com" target="_blank" class="dev-link">cs.baguosps@gmail.com</a>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Scripts -->
+  <script src="extractor.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+# VDownload Pro - Git Ignore Configuration
+# Copyright (c) 2026 cs.baguosps@gmail.com
+
+# Binary executables
+/bin/*.exe
+
+# Cache & Storage generated files
+/storage/cache/*
+!/storage/cache/.gitkeep
+/storage/cache/compressed/*
+!/storage/cache/compressed/.gitkeep
+/storage/history.json
+
+# Temporary download files
+/downloads/*.mp4
+/downloads/*.mp3
+/downloads/*.zip
+!/downloads/.gitkeep
+
+# Logs & temp files
+*.log
+*.tmp
+*.bak
+
+# OS & IDE metadata
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace

@@ -1,0 +1,288 @@
+/**
+ * VDownload Pro - Web Content Floating Button & Standalone Modal
+ * Copyright (c) 2026 cs.baguosps@gmail.com
+ * All rights reserved.
+ * 
+ * Developed by: cs.baguosps@gmail.com
+ */
+
+.vdownload-pill-container {
+  position: fixed !important;
+  bottom: 24px !important;
+  right: 24px !important;
+  z-index: 2147483647 !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Plus Jakarta Sans", sans-serif !important;
+}
+
+.vdownload-pill-wrapper {
+  display: flex !important;
+  align-items: center !important;
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0284c7 100%) !important;
+  border-radius: 50px !important;
+  padding: 4px 6px 4px 14px !important;
+  box-shadow: 0 10px 25px -3px rgba(37, 99, 235, 0.45), 0 4px 6px -2px rgba(0, 0, 0, 0.1) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.35) !important;
+  animation: vdownloadSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+.vdownload-btn-main {
+  background: transparent !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 6px 4px !important;
+  outline: none !important;
+}
+
+.vdownload-btn-main:hover {
+  opacity: 0.95 !important;
+}
+
+.vdownload-icon {
+  font-size: 15px !important;
+}
+
+.vdownload-btn-close {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: none !important;
+  color: #ffffff !important;
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  margin-left: 8px !important;
+  font-size: 16px !important;
+  line-height: 1 !important;
+  outline: none !important;
+  transition: background 0.2s ease !important;
+}
+
+.vdownload-btn-close:hover {
+  background: rgba(255, 255, 255, 0.35) !important;
+}
+
+/* Standalone Floating Panel */
+.vdownload-panel {
+  position: absolute !important;
+  bottom: 50px !important;
+  right: 0 !important;
+  width: 330px !important;
+  background: #ffffff !important;
+  border-radius: 16px !important;
+  border: 1px solid #bfdbfe !important;
+  box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(37, 99, 235, 0.1) !important;
+  padding: 16px !important;
+  color: #0f172a !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  animation: vdownloadSlideIn 0.25s ease forwards !important;
+}
+
+.vdownload-panel-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding-bottom: 8px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.vdownload-panel-title {
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  color: #1e3a8a !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.vdownload-panel-badge {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  background: #dbeafe !important;
+  color: #1d4ed8 !important;
+  padding: 2px 6px !important;
+  border-radius: 6px !important;
+}
+
+.vdownload-panel-close {
+  background: #f1f5f9 !important;
+  border: none !important;
+  color: #64748b !important;
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 50% !important;
+  font-size: 14px !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.vdownload-panel-close:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* Panel Body & States */
+.vdownload-panel-loading {
+  text-align: center !important;
+  padding: 16px 8px !important;
+  color: #475569 !important;
+  font-size: 12px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.vdownload-spinner {
+  width: 24px !important;
+  height: 24px !important;
+  border: 3px solid #bfdbfe !important;
+  border-top-color: #2563eb !important;
+  border-radius: 50% !important;
+  animation: vdownloadSpin 0.7s linear infinite !important;
+}
+
+.vdownload-media-preview {
+  display: flex !important;
+  gap: 10px !important;
+  background: #f8fafc !important;
+  padding: 8px !important;
+  border-radius: 10px !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.vdownload-media-thumb {
+  width: 60px !important;
+  height: 60px !important;
+  border-radius: 8px !important;
+  object-fit: cover !important;
+  background: #cbd5e1 !important;
+  flex-shrink: 0 !important;
+}
+
+.vdownload-media-meta {
+  flex: 1 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 2px !important;
+}
+
+.vdownload-media-author {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #2563eb !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.vdownload-media-caption {
+  font-size: 11px !important;
+  color: #334155 !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  line-height: 1.3 !important;
+}
+
+.vdownload-btn-group {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+.vdownload-action-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 8px 12px !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  border: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.vdownload-btn-hd {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0284c7 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.3) !important;
+}
+
+.vdownload-btn-hd:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 5px 14px rgba(37, 99, 235, 0.45) !important;
+}
+
+.vdownload-btn-secondary {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border: 1px solid #bfdbfe !important;
+}
+
+.vdownload-btn-secondary:hover {
+  background: #dbeafe !important;
+}
+
+.vdownload-panel-toast {
+  background: #ecfdf5 !important;
+  border: 1px solid #a7f3d0 !important;
+  color: #065f46 !important;
+  padding: 6px 10px !important;
+  border-radius: 8px !important;
+  font-size: 11px !important;
+  text-align: center !important;
+  font-weight: 600 !important;
+}
+
+.vdownload-panel-footer {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  font-size: 10px !important;
+  color: #94a3b8 !important;
+  border-top: 1px solid #f1f5f9 !important;
+  padding-top: 6px !important;
+}
+
+.vdownload-web-link {
+  color: #2563eb !important;
+  text-decoration: none !important;
+  font-weight: 600 !important;
+}
+
+.vdownload-web-link:hover {
+  text-decoration: underline !important;
+}
+
+@keyframes vdownloadSlideIn {
+  from {
+    transform: translateY(20px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes vdownloadSpin {
+  to { transform: rotate(360deg); }
+}
