@@ -24,6 +24,20 @@ $baseUrl = Config::getBaseUrl();
     <meta name="author" content="cs.baguosps@gmail.com">
     <meta name="theme-color" content="#2563eb">
 
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="<?= $baseUrl ?>">
+    <meta property="og:title" content="<?= htmlspecialchars($pageTitle ?? Config::APP_NAME) ?>">
+    <meta property="og:description" content="Unduh Video YouTube, TikTok, Instagram & Shopee kualitas Full HD tanpa watermark gratis.">
+    <meta property="og:image" content="<?= $baseUrl ?>/assets/img/preview.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="<?= $baseUrl ?>">
+    <meta property="twitter:title" content="<?= htmlspecialchars($pageTitle ?? Config::APP_NAME) ?>">
+    <meta property="twitter:description" content="Unduh Video YouTube, TikTok, Instagram & Shopee kualitas Full HD tanpa watermark gratis.">
+    <meta property="twitter:image" content="<?= $baseUrl ?>/assets/img/preview.png">
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

@@ -5,6 +5,10 @@
 [![License](https://img.shields.io/badge/License-Proprietary-0284c7?style=for-the-badge)](mailto:cs.baguosps@gmail.com)
 [![Developer](https://img.shields.io/badge/Developer-cs.baguosps%40gmail.com-0ea5e9?style=for-the-badge&logo=gmail&logoColor=white)](mailto:cs.baguosps@gmail.com)
 
+<p align="center">
+  <img src="assets/img/preview.png" alt="VDownload Pro Preview" width="100%">
+</p>
+
 **VDownload Pro** adalah aplikasi web modern, ringan, dan cepat untuk mengunduh video dan audio musik dari **YouTube**, **TikTok**, **Instagram Reels**, dan **Shopee Video** tanpa tanda air (*no watermark*) dengan kualitas **Full HD Asli (1080p / 720p)** dan audio stereo jernih.
 
 Aplikasi ini dilengkapi dengan mesin **Kompresi Cerdas Berakselerasi GPU NVIDIA (NVENC)** agar ukuran berkas hemat kuota **tanpa mengurangi ketajaman video (anti-pecah)**, serta memiliki **Ekstensi Browser Standalone** resmi untuk kemudahan unduh 1-klik langsung di halaman web.
@@ -97,7 +101,8 @@ vdownload/
 │       └── home/                  # Tampilan Beranda, Riwayat, Panduan, Pengaturan
 ├── assets/
 │   ├── css/style.css              # Desain visual White & Blue
-│   └── js/app.js                  # Interaksi antarmuka & progress bar
+│   ├── js/app.js                  # Interaksi antarmuka & progress bar
+│   └── img/preview.png            # Tangkapan layar antarmuka aplikasi
 ├── extension/                     # Berkas Ekstensi Browser (Manifest V3)
 │   ├── manifest.json              # Konfigurasi ekstensi
 │   ├── background.js              # Service worker latar belakang
