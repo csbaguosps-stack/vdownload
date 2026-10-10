@@ -55,22 +55,22 @@ $baseUrl = Config::getBaseUrl();
                             <i class="bi bi-tiktok fs-3"></i>
                         </div>
                         <div>
-                            <h5 class="fw-bold text-dark mb-0">TikTok Video</h5>
-                            <span class="badge bg-info-subtle text-info-emphasis small">Tanpa Tanda Air (No WM)</span>
+                            <h5 class="fw-bold text-dark mb-0">TikTok Video & Foto</h5>
+                            <span class="badge bg-info-subtle text-info-emphasis small">Video & Slide Foto HD</span>
                         </div>
                     </div>
 
                     <ol class="guide-steps ps-3 text-secondary small mb-4">
                         <li class="mb-2">Buka aplikasi atau situs web <strong>TikTok</strong>.</li>
-                        <li class="mb-2">Pilih video yang diinginkan.</li>
+                        <li class="mb-2">Pilih video atau <strong>post foto / slide</strong> yang diinginkan.</li>
                         <li class="mb-2">Klik tombol <strong>Bagikan</strong> (ikon panah lengkung).</li>
                         <li class="mb-2">Klik ikon <strong>Salin Tautan</strong> (Copy Link).</li>
-                        <li>Tempelkan tautan ke <strong><?= Config::APP_NAME ?></strong> untuk mengunduh video & MP3.</li>
+                        <li>Tempelkan tautan ke <strong><?= Config::APP_NAME ?></strong> untuk mengunduh video, semua foto HD, & MP3.</li>
                     </ol>
 
                     <div class="p-3 rounded-3 bg-light border border-light-subtle small mt-auto">
                         <div class="fw-semibold text-info mb-1"><i class="bi bi-info-circle me-1"></i>Format Link:</div>
-                        <code class="text-secondary text-break">tiktok.com/@user/video/...</code>
+                        <code class="text-secondary text-break">tiktok.com/@user/photo/... atau /video/...</code>
                     </div>
                 </div>
             </div>
@@ -83,22 +83,22 @@ $baseUrl = Config::getBaseUrl();
                             <i class="bi bi-instagram fs-3"></i>
                         </div>
                         <div>
-                            <h5 class="fw-bold text-dark mb-0">Instagram Reels</h5>
-                            <span class="badge bg-danger-subtle text-danger-emphasis small">Reels & Post</span>
+                            <h5 class="fw-bold text-dark mb-0">Instagram Reels & Foto</h5>
+                            <span class="badge bg-danger-subtle text-danger-emphasis small">Reels, Foto & Carousel</span>
                         </div>
                     </div>
 
                     <ol class="guide-steps ps-3 text-secondary small mb-4">
                         <li class="mb-2">Buka aplikasi atau situs <strong>Instagram</strong>.</li>
-                        <li class="mb-2">Cari video Reel yang ingin disimpan.</li>
+                        <li class="mb-2">Cari Reels atau <strong>post foto / carousel</strong> yang ingin disimpan.</li>
                         <li class="mb-2">Tekan ikon <strong>Bagikan</strong> atau titik tiga <code>&hellip;</code>.</li>
                         <li class="mb-2">Pilih <strong>Salin Tautan</strong> (Copy link).</li>
-                        <li>Tempel tautan ke <strong><?= Config::APP_NAME ?></strong> untuk mengunduh.</li>
+                        <li>Tempel tautan ke <strong><?= Config::APP_NAME ?></strong> untuk mengunduh foto HD atau video.</li>
                     </ol>
 
                     <div class="p-3 rounded-3 bg-light border border-light-subtle small mt-auto">
                         <div class="fw-semibold text-danger mb-1"><i class="bi bi-info-circle me-1"></i>Format Link:</div>
-                        <code class="text-secondary text-break">instagram.com/reel/C.../</code>
+                        <code class="text-secondary text-break">instagram.com/p/... atau /reel/...</code>
                     </div>
                 </div>
             </div>

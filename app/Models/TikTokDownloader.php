@@ -12,6 +12,7 @@ namespace App\Models;
 
 use App\Core\DownloaderInterface;
 use App\Core\MediaInspector;
+use App\Config\Config;
 
 class TikTokDownloader implements DownloaderInterface
 {
@@ -72,9 +73,57 @@ class TikTokDownloader implements DownloaderInterface
         $durationSec = (int)($data['duration'] ?? 0);
         $duration = $durationSec > 0 ? gmdate('i:s', $durationSec) : null;
 
-        $downloads = [];
+        // Check for Photo Mode / Slideshow Images
+        $rawImages = $data['images'] ?? [];
+        $images = [];
+        if (is_array($rawImages)) {
+            foreach ($rawImages as $img) {
+                $imgUrl = is_array($img) ? ($img['url'] ?? $img['download_url'] ?? '') : (string)$img;
+                if (!empty($imgUrl)) {
+                    if (!str_starts_with($imgUrl, 'http')) {
+                        $imgUrl = 'https://www.tikwm.com' . $imgUrl;
+                    }
+                    $images[] = $imgUrl;
+                }
+            }
+        }
 
-        // Prepare URLs
+        $downloads = [];
+        $baseUrl = Config::getBaseUrl();
+
+        // 1. IF PHOTO POST: Generate photo download links and ZIP bundle option
+        if (!empty($images)) {
+            if (count($images) > 1) {
+                $zipQuery = http_build_query([
+                    'urls' => $images,
+                    'name' => "tiktok_{$author}_{$id}_photos.zip"
+                ]);
+                $downloads[] = [
+                    'type' => 'zip',
+                    'label' => 'Unduh Semua Foto Sekaligus (' . count($images) . ' Foto Full HD)',
+                    'quality' => '⭐ Paket ZIP',
+                    'icon' => 'bi-file-earmark-zip-fill',
+                    'btn_class' => 'btn-tiktok-hd',
+                    'url' => $baseUrl . '/download/zip?' . $zipQuery,
+                    'filename' => "tiktok_{$author}_{$id}_photos.zip"
+                ];
+            }
+
+            foreach ($images as $idx => $imgUrl) {
+                $num = $idx + 1;
+                $downloads[] = [
+                    'type' => 'image',
+                    'label' => "Unduh Foto #{$num} (Kualitas HD Asli)",
+                    'quality' => '⭐ HD Foto',
+                    'icon' => 'bi-image',
+                    'btn_class' => 'btn-tiktok',
+                    'url' => $imgUrl,
+                    'filename' => "tiktok_{$author}_{$id}_photo_{$num}.jpg"
+                ];
+            }
+        }
+
+        // Prepare Video URLs
         $hdUrl = '';
         if (!empty($data['hdplay'])) {
             $hdUrl = $data['hdplay'];
@@ -112,7 +161,9 @@ class TikTokDownloader implements DownloaderInterface
 
         // Detected resolution string
         $detectedRes = '';
-        if (!empty($hdInfo['resolution'])) {
+        if (!empty($images)) {
+            $detectedRes = count($images) . ' Foto HD';
+        } elseif (!empty($hdInfo['resolution'])) {
             $detectedRes = $hdInfo['resolution'] . (!empty($hdInfo['label']) ? " ({$hdInfo['label']})" : '');
         } elseif (!empty($hdUrl)) {
             $detectedRes = '1080x1920 (Full HD)';
@@ -120,15 +171,18 @@ class TikTokDownloader implements DownloaderInterface
             $detectedRes = $sdInfo['resolution'];
         }
 
-        // 1. TOP PRIORITY: HD No Watermark Video (Genuine HD, Bening Tidak Pecah)
+        // HD No Watermark Video
         if (!empty($hdUrl)) {
             $resBadge = !empty($hdInfo['resolution']) ? " ({$hdInfo['resolution']})" : ' (Full HD)';
+            $label = empty($images) 
+                ? "Unduh Video Full HD{$resBadge} - Tanpa Watermark (Kualitas Terbaik)"
+                : "Unduh Video Slideshow Full HD{$resBadge} (MP4)";
             $downloads[] = [
                 'type' => 'video',
-                'label' => "Unduh Video Full HD{$resBadge} - Tanpa Watermark (Kualitas Terbaik)",
+                'label' => $label,
                 'quality' => '⭐ True HD' . $hdSizeLabel,
                 'icon' => 'bi-stars',
-                'btn_class' => 'btn-tiktok-hd',
+                'btn_class' => empty($images) ? 'btn-tiktok-hd' : 'btn-tiktok',
                 'url' => $hdUrl,
                 'size_bytes' => (int)($hdInfo['size'] ?? ($data['hd_size'] ?? 0)),
                 'size_formatted' => (string)($hdInfo['size_formatted'] ?? ''),
@@ -136,8 +190,8 @@ class TikTokDownloader implements DownloaderInterface
             ];
         }
 
-        // 2. Standard No Watermark Video
-        if (!empty($playUrl)) {
+        // Standard No Watermark Video (if not photo post, or as secondary option)
+        if (!empty($playUrl) && empty($images)) {
             $resBadge = !empty($sdInfo['resolution']) ? " ({$sdInfo['resolution']})" : '';
             $downloads[] = [
                 'type' => 'video',
@@ -152,8 +206,8 @@ class TikTokDownloader implements DownloaderInterface
             ];
         }
 
-        // 3. Original with Watermark (Comparison Option)
-        if (!empty($data['wmplay'])) {
+        // Original with Watermark
+        if (!empty($data['wmplay']) && empty($images)) {
             $wmUrl = $data['wmplay'];
             if (!str_starts_with($wmUrl, 'http')) {
                 $wmUrl = 'https://www.tikwm.com' . $wmUrl;
@@ -169,7 +223,7 @@ class TikTokDownloader implements DownloaderInterface
             ];
         }
 
-        // 4. MP3 Audio
+        // MP3 Audio (Always highly requested for TikTok!)
         if (!empty($data['music'])) {
             $musicUrl = $data['music'];
             if (!str_starts_with($musicUrl, 'http')) {
@@ -187,8 +241,8 @@ class TikTokDownloader implements DownloaderInterface
             ];
         }
 
-        // 5. Thumbnail / Cover
-        if (!empty($cover)) {
+        // Thumbnail / Cover
+        if (!empty($cover) && empty($images)) {
             $downloads[] = [
                 'type' => 'image',
                 'label' => 'Unduh Cover / Thumbnail HD (Resolusi Penuh)',
@@ -200,20 +254,24 @@ class TikTokDownloader implements DownloaderInterface
             ];
         }
 
-        // Preview URL: ALWAYS PRIORITIZE HD for crystal-clear preview
-        $previewUrl = !empty($hdUrl) ? $hdUrl : $playUrl;
+        // Preview URL
+        $isPhotoPost = !empty($images);
+        $previewUrl = !$isPhotoPost ? (!empty($hdUrl) ? $hdUrl : $playUrl) : (!empty($hdUrl) ? $hdUrl : null);
+        $coverThumbnail = !empty($images[0]) ? $images[0] : $cover;
 
         return [
             'platform' => 'tiktok',
             'platform_name' => 'TikTok',
+            'media_type' => $isPhotoPost ? 'photo' : 'video',
             'title' => $title,
             'author' => $author,
             'author_avatar' => $avatar,
             'duration' => $duration,
             'resolution' => $detectedRes,
-            'thumbnail' => $cover,
+            'thumbnail' => $coverThumbnail,
             'preview_video' => $previewUrl,
             'preview_audio' => !empty($data['music']) ? (str_starts_with($data['music'], 'http') ? $data['music'] : 'https://www.tikwm.com' . $data['music']) : null,
+            'gallery' => $images,
             'stats' => [
                 'likes' => (int)($data['digg_count'] ?? 0),
                 'comments' => (int)($data['comment_count'] ?? 0),
@@ -235,7 +293,7 @@ class TikTokDownloader implements DownloaderInterface
         }
 
         $data = json_decode($output, true);
-        if (!$data || empty($data['url'])) {
+        if (!$data) {
             throw new \RuntimeException('Gagal membaca data video TikTok via yt-dlp.');
         }
 
@@ -243,34 +301,90 @@ class TikTokDownloader implements DownloaderInterface
         $title = $data['title'] ?? 'TikTok Video';
         $cover = $data['thumbnail'] ?? '';
         $author = $data['uploader'] ?? ($data['channel'] ?? 'TikTok User');
-        $videoUrl = $data['url'];
+        $videoUrl = $data['url'] ?? '';
+
+        // Check for entries if photo mode or playlist
+        $entries = $data['entries'] ?? [];
+        $images = [];
+        if (!empty($entries) && is_array($entries)) {
+            foreach ($entries as $e) {
+                if (!empty($e['url'])) {
+                    $images[] = $e['url'];
+                } elseif (!empty($e['thumbnail'])) {
+                    $images[] = $e['thumbnail'];
+                }
+            }
+        }
+
+        $downloads = [];
+        $baseUrl = Config::getBaseUrl();
+
+        if (!empty($images)) {
+            if (count($images) > 1) {
+                $zipQuery = http_build_query([
+                    'urls' => $images,
+                    'name' => "tiktok_{$author}_{$id}_photos.zip"
+                ]);
+                $downloads[] = [
+                    'type' => 'zip',
+                    'label' => 'Unduh Semua Foto Sekaligus (' . count($images) . ' Foto Full HD)',
+                    'quality' => '⭐ Paket ZIP',
+                    'icon' => 'bi-file-earmark-zip-fill',
+                    'btn_class' => 'btn-tiktok-hd',
+                    'url' => $baseUrl . '/download/zip?' . $zipQuery,
+                    'filename' => "tiktok_{$author}_{$id}_photos.zip"
+                ];
+            }
+
+            foreach ($images as $idx => $imgUrl) {
+                $num = $idx + 1;
+                $downloads[] = [
+                    'type' => 'image',
+                    'label' => "Unduh Foto #{$num} (Kualitas HD Asli)",
+                    'quality' => '⭐ HD Foto',
+                    'icon' => 'bi-image',
+                    'btn_class' => 'btn-tiktok',
+                    'url' => $imgUrl,
+                    'filename' => "tiktok_{$author}_{$id}_photo_{$num}.jpg"
+                ];
+            }
+        }
+
+        if (!empty($videoUrl)) {
+            $downloads[] = [
+                'type' => 'video',
+                'label' => 'Unduh Video TikTok (MP4)',
+                'quality' => 'Direct MP4',
+                'icon' => 'bi-download',
+                'btn_class' => 'btn-tiktok',
+                'url' => $videoUrl,
+                'filename' => "tiktok_{$id}.mp4"
+            ];
+        }
+
+        if (empty($downloads)) {
+            throw new \RuntimeException('Tidak ada stream video atau foto yang ditemukan pada tautan TikTok ini.');
+        }
 
         return [
             'platform' => 'tiktok',
             'platform_name' => 'TikTok',
+            'media_type' => !empty($images) ? 'photo' : 'video',
             'title' => $title,
             'author' => $author,
             'author_avatar' => '',
             'duration' => isset($data['duration']) ? gmdate('i:s', (int)$data['duration']) : null,
-            'thumbnail' => $cover,
-            'preview_video' => $videoUrl,
+            'resolution' => !empty($images) ? (count($images) . ' Foto HD') : 'HD',
+            'thumbnail' => !empty($images[0]) ? $images[0] : $cover,
+            'preview_video' => !empty($images) ? null : $videoUrl,
+            'gallery' => $images,
             'stats' => [
                 'likes' => (int)($data['like_count'] ?? 0),
                 'comments' => (int)($data['comment_count'] ?? 0),
                 'shares' => (int)($data['repost_count'] ?? 0),
                 'views' => (int)($data['view_count'] ?? 0)
             ],
-            'downloads' => [
-                [
-                    'type' => 'video',
-                    'label' => 'Unduh Video TikTok (MP4)',
-                    'quality' => 'Direct MP4',
-                    'icon' => 'bi-download',
-                    'btn_class' => 'btn-tiktok',
-                    'url' => $videoUrl,
-                    'filename' => "tiktok_{$id}.mp4"
-                ]
-            ]
+            'downloads' => $downloads
         ];
     }
 }

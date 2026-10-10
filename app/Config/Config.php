@@ -13,7 +13,7 @@ namespace App\Config;
 class Config
 {
     public const APP_NAME = 'VDownload Pro';
-    public const APP_VERSION = '2.0.0';
+    public const APP_VERSION = '2.1.0';
     public const APP_AUTHOR = 'cs.baguosps@gmail.com';
     public const APP_TAGLINE = 'Unduh Video TikTok, Instagram & Shopee Tanpa Ribet';
 

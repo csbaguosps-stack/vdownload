@@ -94,12 +94,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         detectedPlatformBadge.textContent = platform.toUpperCase();
         detectedPlatformBadge.className = `platform-badge ${platform}`;
         btnDownloadActiveTab.disabled = false;
-        btnDownloadActiveLabel.textContent = `Unduh Video di Tab Ini (${platform.toUpperCase()})`;
+        btnDownloadActiveLabel.textContent = `Unduh Media di Tab Ini (${platform.toUpperCase()})`;
       } else {
-        detectedPlatformBadge.textContent = 'BUKAN VIDEO';
+        detectedPlatformBadge.textContent = 'BUKAN MEDIA';
         detectedPlatformBadge.className = 'platform-badge';
         btnDownloadActiveTab.disabled = true;
-        btnDownloadActiveLabel.textContent = 'Tab ini Bukan Video yang Didukung';
+        btnDownloadActiveLabel.textContent = 'Tab ini Bukan Media yang Didukung';
       }
     }
   } catch (err) {
@@ -166,22 +166,51 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function performExtraction(url) {
     lastFailedUrl = url;
     hideAllStatus();
-    showLoading('Mengekstrak video kualitas True HD...');
+    showLoading('Mengekstrak berkas media kualitas True HD...');
 
     try {
       if (typeof VDownloadExtractor === 'undefined') {
         throw new Error('Modul ekstraksi mandiri tidak termuat dengan benar.');
       }
 
-      const media = await VDownloadExtractor.extractMedia(url);
+      let media = null;
+      try {
+        media = await VDownloadExtractor.extractMedia(url);
+      } catch (extErr) {
+        console.warn('VDownloadExtractor error:', extErr);
+      }
+
+      // DOM fallback if current active tab is the page
       if (!media || !media.downloads || media.downloads.length === 0) {
-        throw new Error('Tidak ada stream video yang berhasil ditemukan dari tautan ini.');
+        try {
+          const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+          if (tabs && tabs[0] && tabs[0].id) {
+            const domRes = await new Promise((resolve) => {
+              chrome.tabs.sendMessage(tabs[0].id, { action: 'get_dom_media' }, (res) => {
+                if (chrome.runtime.lastError || !res || !res.success) {
+                  resolve(null);
+                } else {
+                  resolve(res.data);
+                }
+              });
+            });
+            if (domRes && domRes.downloads && domRes.downloads.length > 0) {
+              media = domRes;
+            }
+          }
+        } catch (tabErr) {
+          console.warn('DOM fallback error:', tabErr);
+        }
+      }
+
+      if (!media || !media.downloads || media.downloads.length === 0) {
+        throw new Error('Tidak dapat mengekstrak berkas media dari tautan ini. Pastikan server VDownload aktif di http://localhost/vdownload atau postingan tidak diprivat.');
       }
 
       displayResult(media, url);
     } catch (err) {
       hideLoading();
-      showError(err.message || 'Gagal mengekstrak video. Pastikan tautan valid dan video bersifat publik.');
+      showError(err.message || 'Gagal mengekstrak berkas media. Pastikan tautan valid dan postingan bersifat publik.');
     }
   }
 
@@ -208,14 +237,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     media.downloads.forEach((item, index) => {
       const btn = document.createElement('button');
       let typeClass = 'hd';
-      if (item.type === 'audio') typeClass = 'audio';
-      else if (item.type === 'image') typeClass = 'cover';
-      else if (index > 0) typeClass = 'sd';
+      let icon = '📥';
+      if (item.type === 'zip') {
+        typeClass = 'zip';
+        icon = '📦';
+      } else if (item.type === 'audio') {
+        typeClass = 'audio';
+        icon = '🎵';
+      } else if (item.type === 'image') {
+        typeClass = 'image';
+        icon = '🖼️';
+      } else if (index > 0) {
+        typeClass = 'sd';
+        icon = '🎬';
+      }
 
       btn.className = `btn-dl-option ${typeClass}`;
       btn.innerHTML = `
         <span class="btn-dl-label">
-          <span>📥</span>
+          <span>${icon}</span>
           <span>${item.label}</span>
         </span>
         <span class="btn-dl-tag">${item.quality || 'Download'}</span>
@@ -258,8 +298,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           }
         }
 
-        if (serverBaseUrl && item.type !== 'image' && !item.url.includes('/download/file')) {
-          let proxyUrl = `${serverBaseUrl}/download/file?url=${encodeURIComponent(item.url)}&name=${encodeURIComponent(item.filename || 'video.mp4')}&type=${encodeURIComponent(item.type || 'video')}`;
+        if (serverBaseUrl && !item.url.includes('/download/file') && !item.url.includes('/download/zip')) {
+          let proxyUrl = `${serverBaseUrl}/download/file?url=${encodeURIComponent(item.url)}&name=${encodeURIComponent(item.filename || 'media')}&type=${encodeURIComponent(item.type || 'video')}`;
           if (item.audio_url) {
             proxyUrl += `&audio_url=${encodeURIComponent(item.audio_url)}`;
           }

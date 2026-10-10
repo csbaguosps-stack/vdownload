@@ -38,6 +38,20 @@ use App\Core\Router;
 use App\Controllers\HomeController;
 use App\Controllers\DownloadController;
 
+// CORS handling for browser extension & cross-origin requests
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '*';
+header("Access-Control-Allow-Origin: {$origin}");
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Origin, Accept');
+header('Access-Control-Allow-Credentials: true');
+header('Access-Control-Max-Age: 86400');
+
+// Handle preflight OPTIONS request immediately
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
+
 try {
     $router = new Router();
 
@@ -58,6 +72,8 @@ try {
     $router->post('download/fetch', [DownloadController::class, 'fetch']);
     $router->post('download/compress', [DownloadController::class, 'compress']);
     $router->get('download/file', [DownloadController::class, 'file']);
+    $router->get('download/zip', [DownloadController::class, 'zip']);
+    $router->post('download/zip', [DownloadController::class, 'zip']);
 
     // Run router
     $router->dispatch();

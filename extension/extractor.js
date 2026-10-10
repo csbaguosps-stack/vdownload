@@ -29,10 +29,10 @@
   };
 
   /**
-   * TikTok Video Extractor (TikWM Standalone API)
+   * TikTok Video & Photo Slideshow Extractor (TikWM Standalone API)
    */
   Extractor.extractTikTok = async function (url) {
-    const apiUrl = `https://www.tikwm.com/api/?url=${encodeURIComponent(url)}`;
+    const apiUrl = `https://www.tikwm.com/api/?url=${encodeURIComponent(url)}&hd=1`;
     const resp = await fetch(apiUrl);
     if (!resp.ok) {
       throw new Error('Gagal menghubungi server ekstraksi TikTok.');
@@ -40,7 +40,7 @@
 
     const data = await resp.json();
     if (data.code !== 0 || !data.data) {
-      throw new Error(data.msg || 'Gagal mengekstrak video TikTok. Pastikan video publik.');
+      throw new Error(data.msg || 'Gagal mengekstrak konten TikTok. Pastikan postingan publik.');
     }
 
     const d = data.data;
@@ -48,22 +48,49 @@
     const cleanId = d.id || String(Date.now());
     const downloads = [];
 
-    // 1. True HD (No Watermark)
+    // Check for Photo Mode / Slideshow Images
+    const rawImages = d.images || [];
+    const images = [];
+    if (Array.isArray(rawImages)) {
+      rawImages.forEach((img) => {
+        const imgUrl = (typeof img === 'string') ? img : (img?.url || '');
+        if (imgUrl) {
+          images.push(imgUrl.startsWith('http') ? imgUrl : `https://www.tikwm.com${imgUrl}`);
+        }
+      });
+    }
+
+    // 1. Photos (If TikTok Photo Slide / Mode)
+    if (images.length > 0) {
+      images.forEach((imgUrl, i) => {
+        downloads.push({
+          type: 'image',
+          label: `Unduh Foto #${i + 1} HD (Tanpa Watermark)`,
+          quality: '⭐ HD Foto',
+          icon: 'image',
+          btnClass: 'btn-tiktok-hd',
+          url: imgUrl,
+          filename: `tiktok_${author}_${cleanId}_photo_${i + 1}.jpg`
+        });
+      });
+    }
+
+    // 2. True HD Video (No Watermark)
     if (d.hdplay) {
       const hdUrl = d.hdplay.startsWith('http') ? d.hdplay : `https://www.tikwm.com${d.hdplay}`;
       downloads.push({
         type: 'video',
-        label: 'Unduh True HD (Tanpa Watermark)',
+        label: images.length > 0 ? 'Unduh Video Slideshow HD (MP4)' : 'Unduh True HD (Tanpa Watermark)',
         quality: '⭐ True HD',
         icon: 'badge-hd',
-        btnClass: 'btn-tiktok-hd',
+        btnClass: images.length > 0 ? 'btn-tiktok' : 'btn-tiktok-hd',
         url: hdUrl,
         filename: `tiktok_${author}_${cleanId}_TrueHD.mp4`
       });
     }
 
-    // 2. Standard Clean Video
-    if (d.play) {
+    // 3. Standard Clean Video (if not a photo slide post)
+    if (d.play && images.length === 0) {
       const playUrl = d.play.startsWith('http') ? d.play : `https://www.tikwm.com${d.play}`;
       downloads.push({
         type: 'video',
@@ -76,7 +103,7 @@
       });
     }
 
-    // 3. Audio MP3
+    // 4. Audio MP3 (Always available & requested)
     if (d.music) {
       const musicUrl = d.music.startsWith('http') ? d.music : `https://www.tikwm.com${d.music}`;
       const songTitle = d.music_info?.title ? ` (${d.music_info.title})` : '';
@@ -91,8 +118,8 @@
       });
     }
 
-    // 4. Cover Thumbnail
-    if (d.cover) {
+    // 5. Cover Thumbnail (for normal video posts)
+    if (d.cover && images.length === 0) {
       downloads.push({
         type: 'image',
         label: 'Unduh Cover / Thumbnail HD',
@@ -107,12 +134,15 @@
     return {
       platform: 'tiktok',
       platformName: 'TikTok',
-      title: d.title || 'TikTok Video',
+      mediaType: images.length > 0 ? 'photo' : 'video',
+      title: d.title || 'TikTok Media',
       author: author,
       authorAvatar: d.author?.avatar || '',
-      duration: d.duration ? `${d.duration}s` : '00:00',
-      thumbnail: d.cover || '',
-      previewVideo: d.play || d.hdplay || '',
+      duration: d.duration ? `${d.duration}s` : (images.length > 0 ? `${images.length} Foto` : '00:00'),
+      thumbnail: images[0] || d.cover || '',
+      previewVideo: images.length > 0 ? '' : (d.play || d.hdplay || ''),
+      previewAudio: d.music ? (d.music.startsWith('http') ? d.music : `https://www.tikwm.com${d.music}`) : '',
+      gallery: images,
       downloads: downloads
     };
   };
@@ -254,8 +284,156 @@
     };
   };
 
+  function unpackSnapsave(h, u, n, t, e, r) {
+    const chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+/";
+    const g = chars.split('');
+    const sliceH = g.slice(0, e);
+    let res = "";
+    const len = h.length;
+    let i = 0;
+    const n_arr = n.split('');
+    const delimiter = n_arr[e] || '';
+
+    while (i < len) {
+      let s = "";
+      while (i < len && h[i] !== delimiter) {
+        s += h[i];
+        i++;
+      }
+      i++;
+      for (let j = 0; j < n_arr.length; j++) {
+        s = s.split(n_arr[j]).join(j.toString());
+      }
+      if (s !== "") {
+        const d_arr = s.split('').reverse();
+        let val = 0;
+        for (let c = 0; c < d_arr.length; c++) {
+          const b = d_arr[c];
+          const idx = sliceH.indexOf(b);
+          if (idx !== -1) {
+            val += idx * Math.pow(e, c);
+          }
+        }
+        const charCode = Math.floor(val) - t;
+        if (charCode > 0 && charCode < 65536) {
+          res += String.fromCharCode(charCode);
+        }
+      }
+    }
+    try {
+      return decodeURIComponent(res);
+    } catch (err) {
+      return res;
+    }
+  }
+
+  async function extractInstagramViaSnapsave(url) {
+    const form = new URLSearchParams({ url: url, action: 'post' });
+    const res = await fetch('https://snapsave.app/action.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Referer': 'https://snapsave.app/'
+      },
+      body: form.toString()
+    });
+
+    if (!res.ok) return null;
+    const text = await res.text();
+    const m = text.match(/\("([^"]+)",(\d+),"([^"]+)",(\d+),(\d+),(\d+)\)/);
+    if (!m) return null;
+
+    let unpacked = unpackSnapsave(m[1], parseInt(m[2], 10), m[3], parseInt(m[4], 10), parseInt(m[5], 10), parseInt(m[6], 10));
+    if (!unpacked || unpacked.includes('Error:')) return null;
+
+    unpacked = unpacked.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\//g, '/');
+
+    const downloads = [];
+    const gallery = [];
+    const photoUrls = [];
+    const cleanId = Math.random().toString(36).substring(2, 10);
+
+    const cardRegex = /<div\s+class="download-items"[^>]*>([\s\S]*?)<\/div>\s*<\/div>/gi;
+    let cardMatch;
+    let itemIdx = 1;
+    while ((cardMatch = cardRegex.exec(unpacked)) !== null) {
+      const cardHtml = cardMatch[1];
+      const imgMatch = cardHtml.match(/<img[^>]*src="([^"]+)"/i);
+      const thumbUrl = imgMatch ? imgMatch[1] : '';
+      const aMatch = cardHtml.match(/<a\b[^>]*href="([^"]+)"/i);
+      const itemUrl = aMatch ? aMatch[1] : '';
+      if (!itemUrl || itemUrl.startsWith('javascript:') || itemUrl === '#') continue;
+
+      const titleMatch = cardHtml.match(/title="([^"]*)"/i);
+      const title = titleMatch ? titleMatch[1] : '';
+      const isPhoto = title.toLowerCase().includes('photo') || 
+                      title.toLowerCase().includes('image') || 
+                      cardHtml.includes('icon-dlimage') ||
+                      /\.(jpe?g|png|webp)/i.test(itemUrl);
+
+      if (isPhoto) {
+        downloads.push({
+          type: 'image',
+          label: `Unduh Foto #${itemIdx} HD (Resolusi Penuh)`,
+          quality: '⭐ HD Foto',
+          icon: 'image',
+          btnClass: 'btn-instagram',
+          url: itemUrl,
+          filename: `instagram_${cleanId}_photo_${itemIdx}.jpg`
+        });
+        photoUrls.push(itemUrl);
+        const display = thumbUrl || itemUrl;
+        if (!gallery.includes(display)) gallery.push(display);
+      } else {
+        downloads.push({
+          type: 'video',
+          label: `Unduh Video #${itemIdx} (Kualitas HD)`,
+          quality: '⭐ True HD',
+          icon: 'badge-hd',
+          btnClass: 'btn-instagram',
+          url: itemUrl,
+          filename: `instagram_${cleanId}_video_${itemIdx}.mp4`
+        });
+        if (thumbUrl && !gallery.includes(thumbUrl)) gallery.push(thumbUrl);
+      }
+      itemIdx++;
+    }
+
+    if (photoUrls.length > 1) {
+      const zipQuery = new URLSearchParams();
+      photoUrls.forEach(u => zipQuery.append('urls[]', u));
+      zipQuery.append('name', `instagram_${cleanId}_photos.zip`);
+      downloads.unshift({
+        type: 'zip',
+        label: `Unduh Semua Foto Sekaligus (${photoUrls.length} Foto Full HD)`,
+        quality: '⭐ Paket ZIP',
+        icon: 'badge-hd',
+        btnClass: 'btn-instagram',
+        url: `http://localhost/vdownload/download/zip?${zipQuery.toString()}`,
+        filename: `instagram_${cleanId}_photos.zip`
+      });
+    }
+
+    if (downloads.length === 0) return null;
+
+    return {
+      platform: 'instagram',
+      platformName: 'Instagram',
+      mediaType: downloads.length > 1 ? 'carousel' : (downloads[0].type === 'image' ? 'photo' : 'video'),
+      title: 'Instagram Post',
+      author: 'Instagram User',
+      authorAvatar: '',
+      duration: downloads.length > 1 ? `${downloads.length} Berkas HD` : 'HD',
+      thumbnail: gallery[0] || '',
+      previewVideo: downloads.find(d => d.type === 'video')?.url || '',
+      gallery: gallery,
+      downloads: downloads
+    };
+  }
+
   /**
-   * Instagram Reels Extractor (Standalone with Session ID & GraphQL)
+   * Instagram Reels Extractor (Standalone with Session ID, GraphQL & Snapsave)
    */
   Extractor.extractInstagram = async function (url) {
     const sMatch = url.match(/(?:reel|reels|p|tv)\/([A-Za-z0-9_-]+)/);
@@ -264,7 +442,32 @@
     }
     const shortcode = sMatch[1];
 
-    // GraphQL Doc IDs for Instagram Reels/Post media
+    // Strategy 1: Check server backend first
+    let serverBaseUrl = 'http://localhost/vdownload';
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
+      try {
+        const stored = await chrome.storage.sync.get(['serverBaseUrl']);
+        if (stored && stored.serverBaseUrl) {
+          serverBaseUrl = stored.serverBaseUrl.replace(/\/+$/, '');
+        }
+      } catch (e) {}
+    }
+
+    try {
+      const resp = await fetch(`${serverBaseUrl}/download/fetch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url })
+      });
+      if (resp.ok) {
+        const json = await resp.json();
+        if (json && json.success && json.data) {
+          return json.data;
+        }
+      }
+    } catch (e) {}
+
+    // Strategy 2: GraphQL Doc IDs for Instagram Reels/Post media (works if logged in)
     const docIds = ['8845758582119845', '10015901848480474'];
     let mediaData = null;
 
@@ -299,49 +502,122 @@
       }
     }
 
+    // Strategy 3: Client-side Snapsave Scraper
     if (!mediaData) {
-      throw new Error('Tidak dapat mengekstrak video Instagram secara langsung. Pastikan Anda sudah login ke instagram.com di browser ini.');
+      try {
+        const snapMedia = await extractInstagramViaSnapsave(url);
+        if (snapMedia) {
+          return snapMedia;
+        }
+      } catch (snapErr) {}
+    }
+
+    if (!mediaData) {
+      throw new Error('Tidak dapat mengekstrak media Instagram secara langsung. Pastikan server VDownload berjalan di localhost atau Anda sudah login ke instagram.com di browser ini.');
     }
 
     const videoUrl = mediaData.video_url || '';
     const displayUrl = mediaData.display_url || '';
     const author = mediaData.owner?.username || 'instagram_user';
-    const caption = mediaData.edge_media_to_caption?.edges?.[0]?.node?.text || 'Instagram Reel';
+    const caption = mediaData.edge_media_to_caption?.edges?.[0]?.node?.text || 'Instagram Post';
     const downloads = [];
+    const gallery = [];
 
-    if (videoUrl) {
-      downloads.push({
-        type: 'video',
-        label: 'Unduh Video Instagram - Kualitas HD',
-        quality: '⭐ True HD',
-        icon: 'badge-hd',
-        btnClass: 'btn-instagram',
-        url: videoUrl,
-        filename: `instagram_${author}_${shortcode}_HD.mp4`
+    // Check for Carousel (Sidecar)
+    const isSidecar = Array.isArray(mediaData.edge_sidecar_to_children?.edges) && mediaData.edge_sidecar_to_children.edges.length > 0;
+
+    if (isSidecar) {
+      mediaData.edge_sidecar_to_children.edges.forEach((edge, i) => {
+        const node = edge?.node;
+        if (!node) return;
+        const itemNum = i + 1;
+        const childIsVideo = !!node.is_video;
+        const childVideoUrl = node.video_url || '';
+        let childImgUrl = node.display_url || '';
+        if (Array.isArray(node.display_resources) && node.display_resources.length > 0) {
+          childImgUrl = node.display_resources[node.display_resources.length - 1].src || childImgUrl;
+        }
+
+        if (childIsVideo && childVideoUrl) {
+          downloads.push({
+            type: 'video',
+            label: `Unduh Video #${itemNum} (Kualitas HD)`,
+            quality: '⭐ True HD',
+            icon: 'badge-hd',
+            btnClass: 'btn-instagram',
+            url: childVideoUrl,
+            filename: `instagram_${author}_${shortcode}_video_${itemNum}.mp4`
+          });
+          if (childImgUrl) gallery.push(childImgUrl);
+        } else if (childImgUrl) {
+          downloads.push({
+            type: 'image',
+            label: `Unduh Foto #${itemNum} HD (Resolusi Penuh)`,
+            quality: '⭐ HD Foto',
+            icon: 'image',
+            btnClass: 'btn-instagram',
+            url: childImgUrl,
+            filename: `instagram_${author}_${shortcode}_photo_${itemNum}.jpg`
+          });
+          gallery.push(childImgUrl);
+        }
       });
+    } else {
+      // Single Post
+      const isVideo = !!mediaData.is_video;
+      let bestImg = displayUrl;
+      if (Array.isArray(mediaData.display_resources) && mediaData.display_resources.length > 0) {
+        bestImg = mediaData.display_resources[mediaData.display_resources.length - 1].src || bestImg;
+      }
+
+      if (isVideo && videoUrl) {
+        downloads.push({
+          type: 'video',
+          label: 'Unduh Video Instagram - Kualitas HD',
+          quality: '⭐ True HD',
+          icon: 'badge-hd',
+          btnClass: 'btn-instagram',
+          url: videoUrl,
+          filename: `instagram_${author}_${shortcode}_HD.mp4`
+        });
+        if (bestImg) {
+          downloads.push({
+            type: 'image',
+            label: 'Unduh Thumbnail HD (Resolusi Penuh)',
+            quality: 'HD Image',
+            icon: 'image',
+            btnClass: 'btn-cover',
+            url: bestImg,
+            filename: `instagram_${author}_${shortcode}_thumb.jpg`
+          });
+          gallery.push(bestImg);
+        }
+      } else if (bestImg) {
+        downloads.push({
+          type: 'image',
+          label: 'Unduh Foto Instagram HD (Resolusi Penuh)',
+          quality: '⭐ HD Foto',
+          icon: 'image',
+          btnClass: 'btn-instagram',
+          url: bestImg,
+          filename: `instagram_${author}_${shortcode}.jpg`
+        });
+        gallery.push(bestImg);
+      }
     }
 
-    if (displayUrl) {
-      downloads.push({
-        type: 'image',
-        label: 'Unduh Thumbnail HD (Resolusi Penuh)',
-        quality: 'HD Image',
-        icon: 'image',
-        btnClass: 'btn-cover',
-        url: displayUrl,
-        filename: `instagram_${author}_${shortcode}_thumb.jpg`
-      });
-    }
-
+    const isVideoTop = !!mediaData.is_video;
     return {
       platform: 'instagram',
       platformName: 'Instagram',
+      mediaType: isSidecar ? 'carousel' : (isVideoTop ? 'video' : 'photo'),
       title: caption,
       author: author,
       authorAvatar: mediaData.owner?.profile_pic_url || '',
-      duration: mediaData.video_duration ? `${Math.round(mediaData.video_duration)}s` : '',
-      thumbnail: displayUrl,
-      previewVideo: videoUrl,
+      duration: mediaData.video_duration ? `${Math.round(mediaData.video_duration)}s` : (isSidecar ? `${gallery.length} Media` : ''),
+      thumbnail: gallery[0] || displayUrl || '',
+      previewVideo: (!isSidecar && isVideoTop) ? videoUrl : '',
+      gallery: gallery,
       downloads: downloads
     };
   };
@@ -450,7 +726,7 @@
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
       const resp = await fetch(`${serverBaseUrl}/download/fetch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

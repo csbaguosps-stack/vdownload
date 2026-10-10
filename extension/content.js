@@ -15,12 +15,89 @@
     return (
       (u.includes('youtube.com') && (u.includes('/watch') || u.includes('/shorts/'))) ||
       (u.includes('youtu.be/')) ||
-      (u.includes('tiktok.com') && (u.includes('/video/') || u.includes('/v/'))) ||
+      (u.includes('tiktok.com') && (u.includes('/video/') || u.includes('/v/') || u.includes('/photo/'))) ||
       (u.includes('instagram.com') && (u.includes('/reel/') || u.includes('/p/'))) ||
       (u.includes('shopee.co.id') && (u.includes('share-video') || u.includes('/video/'))) ||
       (u.includes('shp.ee'))
     );
   }
+
+  function extractMediaFromDOM() {
+    const downloads = [];
+    const images = [];
+
+    // Check for Instagram images
+    const igImgs = document.querySelectorAll('article img, main img, div[role="dialog"] img');
+    igImgs.forEach((img) => {
+      let src = img.src || '';
+      if (img.srcset) {
+        const parts = img.srcset.split(',');
+        const lastPart = parts[parts.length - 1].trim().split(' ')[0];
+        if (lastPart) src = lastPart;
+      }
+      if (src && (src.includes('cdninstagram.com') || src.includes('fbcdn.net'))) {
+        if (!images.includes(src)) {
+          images.push(src);
+          downloads.push({
+            type: 'image',
+            label: `Unduh Foto #${images.length} (Kualitas HD)`,
+            quality: '⭐ HD Foto',
+            filename: `instagram_photo_${images.length}.jpg`,
+            url: src
+          });
+        }
+      }
+    });
+
+    // Check for Instagram videos
+    const igVideos = document.querySelectorAll('article video, main video, div[role="dialog"] video');
+    igVideos.forEach((vid, idx) => {
+      const src = vid.src || '';
+      if (src && !src.startsWith('blob:')) {
+        downloads.push({
+          type: 'video',
+          label: `Unduh Video #${downloads.length + 1} (Kualitas HD)`,
+          quality: '⭐ True HD',
+          filename: `instagram_video_${idx + 1}.mp4`,
+          url: src
+        });
+      }
+    });
+
+    if (downloads.length > 0) {
+      if (images.length > 1) {
+        const zipQuery = new URLSearchParams();
+        images.forEach(u => zipQuery.append('urls[]', u));
+        zipQuery.append('name', 'instagram_photos.zip');
+        downloads.unshift({
+          type: 'zip',
+          label: `Unduh Semua Foto Sekaligus (${images.length} Foto Full HD)`,
+          quality: '⭐ Paket ZIP',
+          icon: 'badge-hd',
+          filename: 'instagram_photos.zip',
+          url: `http://localhost/vdownload/download/zip?${zipQuery.toString()}`
+        });
+      }
+
+      return {
+        platformName: 'Instagram',
+        title: document.title || 'Instagram Media',
+        author: 'Instagram User',
+        thumbnail: images[0] || '',
+        downloads: downloads
+      };
+    }
+    return null;
+  }
+
+  // Handle messages from popup or background
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'get_dom_media') {
+      const media = extractMediaFromDOM();
+      sendResponse({ success: !!media, data: media });
+      return true;
+    }
+  });
 
   function injectDownloadPill() {
     if (document.getElementById('vdownload-floating-btn')) return;
@@ -32,9 +109,9 @@
 
     pill.innerHTML = `
       <div class="vdownload-pill-wrapper">
-        <button class="vdownload-btn-main" title="Unduh Video ini Langsung (Standalone)">
+        <button class="vdownload-btn-main" title="Unduh Video / Foto ini Langsung">
           <span class="vdownload-icon">📥</span>
-          <span class="vdownload-text">Unduh Video HD</span>
+          <span class="vdownload-text">Unduh Media HD</span>
         </button>
         <button class="vdownload-btn-close" title="Tutup">&times;</button>
       </div>
@@ -81,7 +158,7 @@
       </div>
       <div class="vdownload-panel-loading">
         <div class="vdownload-spinner"></div>
-        <div>Mengekstrak video kualitas True HD...</div>
+        <div>Mengekstrak berkas media kualitas True HD...</div>
       </div>
       <div class="vdownload-panel-footer">
         <span>by cs.baguosps@gmail.com</span>
@@ -95,14 +172,21 @@
     isExtracting = true;
     chrome.runtime.sendMessage({ action: 'extract_media', url: currentUrl }, (res) => {
       isExtracting = false;
-      if (!res || !res.success || !res.data) {
+      if (!res || !res.success || !res.data || !res.data.downloads || res.data.downloads.length === 0) {
+        const domMedia = extractMediaFromDOM();
+        if (domMedia) {
+          cachedExtraction = { originalUrl: currentUrl, data: domMedia };
+          renderPanelData(panel, domMedia);
+          return;
+        }
+
         panel.innerHTML = `
           <div class="vdownload-panel-header">
             <div class="vdownload-panel-title">⚠️ Gagal Ekstrak</div>
             <button class="vdownload-panel-close">&times;</button>
           </div>
           <div style="font-size:12px;color:#dc2626;padding:10px 0;">
-            ${res?.error || 'Gagal mengekstrak video ini secara otomatis.'}
+            ${res?.error || 'Gagal mengekstrak berkas media ini secara otomatis.'}
           </div>
           <div class="vdownload-btn-group">
             <button class="vdownload-action-btn vdownload-btn-secondary" id="vdownload-btn-retry">Coba Lagi</button>

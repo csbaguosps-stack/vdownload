@@ -273,4 +273,117 @@ class DownloadController extends Controller
         curl_close($ch);
         exit;
     }
+
+    /**
+     * Download multiple images/media as a single compressed ZIP archive
+     */
+    public function zip(): void
+    {
+        $urls = $_GET['urls'] ?? $_POST['urls'] ?? [];
+        $zipName = $_GET['name'] ?? $_POST['name'] ?? 'photos.zip';
+
+        if (is_string($urls)) {
+            $urls = explode(',', $urls);
+        }
+
+        $urls = array_filter(array_map('trim', (array)$urls), function($u) {
+            return !empty($u) && filter_var($u, FILTER_VALIDATE_URL);
+        });
+
+        if (empty($urls)) {
+            http_response_code(400);
+            echo 'Tidak ada tautan gambar yang valid untuk dibuatkan ZIP.';
+            exit;
+        }
+
+        $zipName = preg_replace('/[^a-zA-Z0-9_\-\.]/', '_', (string)$zipName);
+        if (!str_ends_with(strtolower($zipName), '.zip')) {
+            $zipName .= '.zip';
+        }
+
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(0);
+        }
+
+        $cacheDir = \App\Config\Config::getStoragePath('cache');
+        if (!is_dir($cacheDir)) {
+            @mkdir($cacheDir, 0777, true);
+        }
+
+        $tempZipPath = $cacheDir . DIRECTORY_SEPARATOR . 'photos_' . md5(json_encode($urls) . microtime()) . '.zip';
+
+        $zip = new \ZipArchive();
+        if ($zip->open($tempZipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            http_response_code(500);
+            echo 'Gagal menyiapkan berkas ZIP di server.';
+            exit;
+        }
+
+        $idx = 1;
+        foreach ($urls as $fileUrl) {
+            $ch = curl_init($fileUrl);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                CURLOPT_TIMEOUT => 25
+            ]);
+            $fileData = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+            curl_close($ch);
+
+            if ($httpCode === 200 && !empty($fileData)) {
+                $ext = 'jpg';
+                if (stripos((string)$contentType, 'png') !== false) {
+                    $ext = 'png';
+                } elseif (stripos((string)$contentType, 'webp') !== false) {
+                    $ext = 'webp';
+                } elseif (stripos((string)$contentType, 'mp4') !== false) {
+                    $ext = 'mp4';
+                }
+
+                $entryName = sprintf("photo_%02d.%s", $idx, $ext);
+                $zip->addFromString($entryName, $fileData);
+                $idx++;
+            }
+        }
+
+        $zip->close();
+
+        if (!file_exists($tempZipPath) || filesize($tempZipPath) < 64) {
+            http_response_code(500);
+            echo 'Gagal mengemas berkas ke dalam ZIP.';
+            if (file_exists($tempZipPath)) {
+                @unlink($tempZipPath);
+            }
+            exit;
+        }
+
+        header('Content-Description: File Transfer');
+        header('Content-Type: application/zip');
+        header('Content-Disposition: attachment; filename="' . $zipName . '"');
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+        header('Pragma: public');
+        header('Content-Length: ' . filesize($tempZipPath));
+
+        $fp = fopen($tempZipPath, 'rb');
+        if ($fp) {
+            while (!feof($fp)) {
+                echo fread($fp, 256 * 1024);
+                flush();
+            }
+            fclose($fp);
+        }
+
+        @unlink($tempZipPath);
+        exit;
+    }
 }

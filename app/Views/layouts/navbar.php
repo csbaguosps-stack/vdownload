@@ -60,10 +60,10 @@ $activeNav = $activeNav ?? 'home';
                     <span class="badge badge-platform badge-youtube" title="YouTube Video & Musik Didukung">
                         <i class="bi bi-youtube"></i> YouTube
                     </span>
-                    <span class="badge badge-platform badge-tiktok" title="TikTok Didukung">
+                    <span class="badge badge-platform badge-tiktok" title="TikTok Video & Foto Slide Didukung">
                         <i class="bi bi-tiktok"></i> TikTok
                     </span>
-                    <span class="badge badge-platform badge-instagram" title="Instagram Didukung">
+                    <span class="badge badge-platform badge-instagram" title="Instagram Reels, Foto & Carousel Didukung">
                         <i class="bi bi-instagram"></i> IG
                     </span>
                     <span class="badge badge-platform badge-shopee" title="Shopee Video Didukung">

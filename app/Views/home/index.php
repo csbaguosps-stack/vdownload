@@ -18,7 +18,7 @@ $baseUrl = Config::getBaseUrl();
                 <div class="d-inline-flex flex-wrap align-items-center justify-content-center gap-2 mb-3">
                     <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill hero-badge animate-fade-in shadow-sm">
                         <span class="badge-dot"></span>
-                        <span class="small fw-semibold text-uppercase tracking-wider">Downloader Video Multi-Platform v2.0</span>
+                        <span class="small fw-semibold text-uppercase tracking-wider">Downloader Video &amp; Foto Multi-Platform v<?= \App\Config\Config::APP_VERSION ?></span>
                     </div>
                     <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-success-subtle text-success border border-success-subtle shadow-xs animate-fade-in">
                         <i class="bi bi-file-earmark-zip-fill"></i>
@@ -47,10 +47,10 @@ $baseUrl = Config::getBaseUrl();
                             <i class="bi bi-youtube me-1 text-danger"></i> YouTube Video & Musik
                         </button>
                         <button class="btn btn-sm btn-platform-tab" data-platform="tiktok">
-                            <i class="bi bi-tiktok me-1 text-info"></i> TikTok (No WM)
+                            <i class="bi bi-tiktok me-1 text-info"></i> TikTok (Video & Foto)
                         </button>
                         <button class="btn btn-sm btn-platform-tab" data-platform="instagram">
-                            <i class="bi bi-instagram me-1 text-danger"></i> Instagram Reels
+                            <i class="bi bi-instagram me-1 text-danger"></i> Instagram (Reels & Foto)
                         </button>
                         <button class="btn btn-sm btn-platform-tab" data-platform="shopee">
                             <i class="bi bi-bag-check-fill me-1 text-warning"></i> Shopee Video
@@ -72,7 +72,7 @@ $baseUrl = Config::getBaseUrl();
                                 type="url" 
                                 class="form-control search-input shadow-none" 
                                 id="videoUrlInput" 
-                                placeholder="Tempel tautan video YouTube, TikTok, Instagram, atau Shopee di sini..." 
+                                placeholder="Tempel tautan video atau foto Instagram, TikTok, Shopee, YouTube di sini..." 
                                 autocomplete="off"
                                 required
                             >
@@ -175,7 +175,18 @@ $baseUrl = Config::getBaseUrl();
                                     ></video>
                                     <img id="previewImageFallback" class="w-100 rounded-4 preview-media d-none" alt="Thumbnail">
                                     
-                                    <div class="platform-watermark-badge position-absolute top-0 start-0 m-2 d-flex gap-1">
+                                    <!-- Gallery Navigation (If Multiple Photos Available) -->
+                                    <div id="galleryControls" class="d-none position-absolute bottom-0 start-0 end-0 p-2 d-flex align-items-center justify-content-between" style="background: linear-gradient(to top, rgba(0,0,0,0.75), transparent); z-index: 10;">
+                                        <button type="button" class="btn btn-sm btn-dark bg-opacity-75 rounded-circle p-1 px-2 border-0 shadow-sm" id="btnGalleryPrev" title="Foto Sebelumnya">
+                                            <i class="bi bi-chevron-left text-white"></i>
+                                        </button>
+                                        <span class="badge bg-black bg-opacity-75 text-white fw-medium small px-2 py-1" id="galleryCounter">1 / 1</span>
+                                        <button type="button" class="btn btn-sm btn-dark bg-opacity-75 rounded-circle p-1 px-2 border-0 shadow-sm" id="btnGalleryNext" title="Foto Berikutnya">
+                                            <i class="bi bi-chevron-right text-white"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="platform-watermark-badge position-absolute top-0 start-0 m-2 d-flex gap-1" style="z-index: 10;">
                                         <span class="badge" id="resultPlatformBadge">Shopee Video</span>
                                         <span class="badge bg-success bg-opacity-90 text-white shadow-sm" id="noWatermarkBadge">
                                             <i class="bi bi-shield-check me-1"></i>No Watermark HD

@@ -1,5 +1,7 @@
-# 🚀 VDownload Pro - Multi-Platform Video & Music Downloader
+# 🚀 VDownload Pro - Multi-Platform Video, Photo & Music Downloader
 
+[![Version](https://img.shields.io/badge/Version-v2.1.0-0284c7?style=for-the-badge&logo=git&logoColor=white)](https://github.com/csbaguosps-stack/vdownload)
+[![Extension](https://img.shields.io/badge/Extension-v1.3.0-10b981?style=for-the-badge&logo=googlechrome&logoColor=white)](extension/)
 [![PHP Version](https://img.shields.io/badge/PHP-8.2%2B-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net/)
 [![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white)](https://getbootstrap.com/)
 [![License](https://img.shields.io/badge/License-Proprietary-0284c7?style=for-the-badge)](mailto:cs.baguosps@gmail.com)
@@ -9,19 +11,39 @@
   <img src="assets/img/preview.png" alt="VDownload Pro Preview" width="100%">
 </p>
 
-**VDownload Pro** adalah aplikasi web dan ekstensi browser modern untuk mengunduh video dan audio musik dari **YouTube**, **TikTok**, **Instagram Reels**, dan **Shopee Video** tanpa tanda air (*no watermark*) dengan kualitas **Full HD Asli (1080p / 720p)** dan audio stereo jernih.
+**VDownload Pro** adalah aplikasi web dan ekstensi browser modern untuk mengunduh video, foto/gambar, dan audio musik dari **YouTube**, **TikTok**, **Instagram (Reels & Album Foto)**, dan **Shopee Video** tanpa tanda air (*no watermark*) dengan kualitas **Full HD Asli (1080p / 720p)**, pratinjau galeri carousel interaktif, serta paket unduhan berkas ZIP instan.
 
-Dilengkapi dengan mesin **Kompresi Cerdas Berakselerasi GPU NVIDIA (NVENC)** agar berkas video hemat kuota hingga ~60% **tanpa mengurangi ketajaman video (anti-pecah)**, serta memiliki **Ekstensi Browser Standalone** resmi untuk kemudahan unduh 1-klik langsung di halaman web.
+Dilengkapi dengan mesin **Kompresi Cerdas Berakselerasi GPU NVIDIA (NVENC)** agar berkas video hemat kuota hingga ~60% **tanpa mengurangi ketajaman video (anti-pecah)**, serta memiliki **Ekstensi Browser Standalone (v1.3.0)** resmi untuk kemudahan unduh 1-klik langsung di halaman web peramban Anda.
+
+---
+
+## 🆕 Catatan Rilis Versi 2.1.0 (Changelog)
+
+* **📸 Unduh Foto & Carousel Instagram (Baru)**:
+  * Mendukung unduhan foto tunggal dan album carousel multi-foto Instagram beresolusi penuh (1080p).
+  * Opsi tombol instan: **Unduh Semua Foto Sekaligus (.ZIP)** untuk kemudahan mengunduh seluruh album dalam 1 klik.
+  * Parser JavaScript Snapsave canggih di sisi server dengan multi-layer fallback ke Instagram GraphQL.
+* **🎵 Unduh Foto Slideshow TikTok (Baru)**:
+  * Mendukung unduh gambar TikTok Photo Mode / Slideshow tanpa watermark kualitas HD asli.
+  * Dilengkapi opsi unduhan paket bundel ZIP serta ekstraksi audio musik MP3.
+* **🖼️ Pratinjau Galeri Interaktif (Carousel Viewer)**:
+  * Halaman hasil pencarian dilengkapi slider pratinjau visual dengan kontrol navigasi (*Prev / Next*) dan penghitung jumlah foto (`1 / N`).
+* **🧩 Pembaruan Ekstensi Browser Standalone (v1.3.0)**:
+  * **CORS Preflight & Universal Origin**: Menambahkan header CORS penuh dan penanganan `OPTIONS` di backend sehingga ekstensi terhubung lancar tanpa blokir browser.
+  * **Multi-Layer Fallback**: Server API -> Content Script DOM Extraction (`srcset` 1080p) -> Standalone Extractor.
+  * **Tampilan Khusus**: Tombol unduhan bergradien khusus untuk foto HD (`🖼️`) dan paket ZIP (`📦`).
+  * **Manifest V3 Safe**: Penghapusan dependensi DOMParser di Service Worker untuk performa tanpa hambatan.
 
 ---
 
 ## 📑 Daftar Isi
 
+- [🆕 Catatan Rilis Versi 2.1.0 (Changelog)](#-catatan-rilis-versi-210-changelog)
 - [🎯 Ringkasan Dukungan Platform](#-ringkasan-dukungan-platform)
 - [✨ Fitur Unggulan](#-fitur-unggulan)
-  - [1. 🎬 Multi-Platform Extractor](#1--multi-platform-extractor)
+  - [1. 🎬 Multi-Platform Extractor (Video & Foto)](#1--multi-platform-extractor-video--foto)
   - [2. ⚡ Mesin Kompresi GPU NVENC & CPU (Anti-Pecah)](#2--mesin-kompresi-gpu-nvenc--cpu-anti-pecah)
-  - [3. 🧩 Ekstensi Browser Standalone](#3--ekstensi-browser-standalone)
+  - [3. 🧩 Ekstensi Browser Standalone (v1.3.0)](#3--ekstensi-browser-standalone-v130)
   - [4. 🎨 Desain Modern & Responsif](#4--desain-modern--responsif)
 - [🛠️ Persyaratan Sistem](#️-persyaratan-sistem)
 - [🚀 Panduan Mulai Cepat (Quick Start)](#-panduan-mulai-cepat-quick-start)
@@ -37,18 +59,26 @@ Dilengkapi dengan mesin **Kompresi Cerdas Berakselerasi GPU NVIDIA (NVENC)** aga
 
 ## 🎯 Ringkasan Dukungan Platform
 
-| Platform | Kualitas Video | Audio Musik | Cover / Thumbnail | Keterangan Khusus |
-| :--- | :---: | :---: | :---: | :--- |
-| **YouTube** | ✅ Full HD 1080p, HD 720p, SD | ✅ MP3 / M4A High Quality | ✅ HD JPG | Mendukung video reguler, Shorts (`/shorts/`), dan YouTube Music |
-| **TikTok** | ✅ Full HD & Clean SD (No WM) | ✅ MP3 Original Audio | ✅ Avatar HD & Cover | Tanpa watermark TikWM/TikTok, info likes & views |
-| **Instagram** | ✅ Full HD Reels & Post | *(Termasuk dalam video)* | ✅ Cover HD | Mendukung Reels, postingan video Feed, ekstraksi multi-lapis |
-| **Shopee Video** | ✅ **⭐ True Master HD** & SD | *(Termasuk dalam video)* | ✅ Cover HD | Stream VOD murni tanpa watermark template Shopee |
+| Platform | Kualitas Video | Kualitas Foto / Album | Audio Musik | Paket ZIP | Keterangan Khusus |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **YouTube** | ✅ Full HD 1080p, 720p, SD | ✅ Thumbnail HD JPG | ✅ MP3 / M4A HQ | — | Mendukung Shorts (`/shorts/`), Video Standar, YouTube Music |
+| **TikTok** | ✅ Full HD & Clean SD (No WM) | ✅ **Foto HD Asli (Slideshow)** | ✅ MP3 Original | ✅ **Paket ZIP Semua Foto** | Tanpa watermark, ekstraksi multi-foto & lagu |
+| **Instagram** | ✅ Full HD Reels & Feed Video | ✅ **Foto HD & Carousel Album** | *(Termasuk dlm video)* | ✅ **Paket ZIP Semua Foto** | Mendukung Reels, post foto tunggal & album carousel multi-slide |
+| **Shopee Video** | ✅ **⭐ True Master HD** & SD | ✅ Cover HD JPG | *(Termasuk dlm video)* | — | Stream VOD murni 100% tanpa watermark UI Shopee |
 
 ---
 
 ## ✨ Fitur Unggulan
 
-### 1. 🎬 Multi-Platform Extractor
+### 1. 🎬 Multi-Platform Extractor (Video & Foto)
+* **Instagram (Reels & Album Foto)**:
+  * Mendukung unduhan **Reels** resolusi HD tanpa batas.
+  * Mendukung unduhan **Foto Tunggal & Album Carousel** (hingga resolusi asli 1080p).
+  * Opsi **Unduh Semua Foto Sekaligus (.ZIP)** yang otomatis merangkum semua foto carousel dalam satu file ZIP.
+* **TikTok (Video & Slideshow Foto)**:
+  * Menghapus watermark bawaan TikTok secara otomatis (No Watermark True HD).
+  * Mendukung unduhan **TikTok Photo Mode / Slideshow** baik per-foto HD maupun bundel **ZIP**.
+  * Ekstraksi lagu pengiring (background music) dalam format MP3 jernih.
 * **YouTube**:
   * Unduh Video resolusi 1080p Full HD, 720p HD, serta 360p SD.
   * Unduh berkas audio musik murni berformat MP3 / M4A kualitas tinggi.
@@ -56,11 +86,6 @@ Dilengkapi dengan mesin **Kompresi Cerdas Berakselerasi GPU NVIDIA (NVENC)** aga
 * **Shopee Video**:
   * **⭐ True Master HD**: Mengunduh berkas video asli sebelum dikompresi oleh template UI Shopee (100% tanpa watermark).
   * Opsi unduh Web SD hemat penyimpanan untuk pengguna seluler.
-* **TikTok**:
-  * Menghapus watermark bawaan TikTok secara otomatis.
-  * Ekstraksi lagu pengiring (background music) dalam format MP3.
-* **Instagram**:
-  * Mendukung Reels dan Video Postingan publik dengan resolusi terbaik.
 
 ---
 
@@ -76,11 +101,16 @@ Dilengkapi dengan mesin **Kompresi Cerdas Berakselerasi GPU NVIDIA (NVENC)** aga
 
 ---
 
-### 3. 🧩 Ekstensi Browser Standalone
+### 3. 🧩 Ekstensi Browser Standalone (v1.3.0)
 * Terletak di direktori `extension/` berbasis **Manifest V3**.
-* **100% Mandiri (Standalone)**: Dapat langsung mengunduh video dari peramban tanpa perlu server lokal aktif.
-* **Tombol Unduh Mengambang (Floating Button)**: Muncul otomatis di pojok kanan bawah saat Anda membuka video di YouTube, TikTok, Instagram, atau Shopee.
-* **Deteksi Tab Aktif**: Buka ekstensi dan klik 1 kali untuk langsung mengunduh video yang sedang Anda tonton.
+* **100% Mandiri (Standalone)**: Dapat langsung mengunduh video & foto dari peramban tanpa perlu server lokal aktif.
+* **Dukungan CORS Penuh**: Sinkronisasi instan dengan server VDownload lokal dengan izin preflight HTTP `OPTIONS`.
+* **Multi-Layer Fallback Cerdas**:
+  * Prioritas 1: Server VDownload lokal (Snapsave Unpacker & resolusi maksimal).
+  * Prioritas 2: Content script DOM inspection (`srcset` 1080p langsung dari tab aktif).
+  * Prioritas 3: Standalone client-side regex engine.
+* **Tombol Unduh Mengambang (Floating Button)**: Muncul otomatis di pojok kanan bawah saat Anda membuka video/foto di YouTube, TikTok, Instagram, atau Shopee.
+* **Deteksi Tab Aktif & Unduh Cepat**: Buka ekstensi dan klik 1 kali untuk langsung mengunduh media dari tab yang sedang aktif.
 
 ---
 

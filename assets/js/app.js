@@ -28,6 +28,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Result Card Elements
     const previewVideo = document.getElementById('previewVideoPlayer');
     const previewImageFallback = document.getElementById('previewImageFallback');
+    const galleryControls = document.getElementById('galleryControls');
+    const btnGalleryPrev = document.getElementById('btnGalleryPrev');
+    const btnGalleryNext = document.getElementById('btnGalleryNext');
+    const galleryCounter = document.getElementById('galleryCounter');
     const audioPreviewBlock = document.getElementById('audioPreviewBlock');
     const previewAudio = document.getElementById('previewAudioPlayer');
     const resultPlatformBadge = document.getElementById('resultPlatformBadge');
@@ -54,6 +58,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const sampleLinks = document.querySelectorAll('.sample-link');
 
     let currentMediaData = null;
+    let currentGallery = [];
+    let currentGalleryIndex = 0;
+
+    function showGalleryImage(index) {
+        if (!currentGallery || currentGallery.length === 0) return;
+        if (index < 0) index = currentGallery.length - 1;
+        if (index >= currentGallery.length) index = 0;
+        currentGalleryIndex = index;
+        if (previewImageFallback) {
+            previewImageFallback.src = currentGallery[currentGalleryIndex];
+        }
+        if (galleryCounter) {
+            galleryCounter.textContent = `${currentGalleryIndex + 1} / ${currentGallery.length}`;
+        }
+    }
+
+    btnGalleryPrev?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showGalleryImage(currentGalleryIndex - 1);
+    });
+
+    btnGalleryNext?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showGalleryImage(currentGalleryIndex + 1);
+    });
 
     /**
      * Detect platform from URL string
@@ -277,19 +306,49 @@ document.addEventListener('DOMContentLoaded', () => {
             sharesStatWrapper.classList.add('d-none');
         }
 
-        // Video Player Preview
+        // Video & Photo Gallery Preview
+        currentGallery = Array.isArray(media.gallery) ? media.gallery : [];
+        currentGalleryIndex = 0;
+
         if (media.preview_video) {
             previewVideo.classList.remove('d-none');
             previewImageFallback.classList.add('d-none');
+            galleryControls?.classList.add('d-none');
             previewVideo.src = media.preview_video;
             if (media.thumbnail) {
                 previewVideo.poster = media.thumbnail;
             }
             previewVideo.load();
+        } else if (currentGallery.length > 0) {
+            previewVideo.classList.add('d-none');
+            if (previewVideo) previewVideo.src = '';
+            previewImageFallback.classList.remove('d-none');
+            previewImageFallback.src = currentGallery[0];
+            if (currentGallery.length > 1) {
+                galleryControls?.classList.remove('d-none');
+                if (galleryCounter) {
+                    galleryCounter.textContent = `1 / ${currentGallery.length}`;
+                }
+            } else {
+                galleryControls?.classList.add('d-none');
+            }
         } else if (media.thumbnail) {
             previewVideo.classList.add('d-none');
+            if (previewVideo) previewVideo.src = '';
+            galleryControls?.classList.add('d-none');
             previewImageFallback.classList.remove('d-none');
             previewImageFallback.src = media.thumbnail;
+        }
+
+        // Watermark badge label
+        if (media.media_type === 'photo' || media.media_type === 'carousel' || currentGallery.length > 0) {
+            if (noWatermarkBadge) {
+                noWatermarkBadge.innerHTML = '<i class="bi bi-images me-1"></i>Foto HD Asli';
+            }
+        } else {
+            if (noWatermarkBadge) {
+                noWatermarkBadge.innerHTML = '<i class="bi bi-shield-check me-1"></i>No Watermark HD';
+            }
         }
 
         // Audio Preview (if available)
@@ -307,9 +366,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (Array.isArray(media.downloads) && media.downloads.length > 0) {
             media.downloads.forEach(dl => {
                 const btn = document.createElement('a');
-                let streamUrl = `${baseUrl}/download/file?url=${encodeURIComponent(dl.url)}&name=${encodeURIComponent(dl.filename || 'video.mp4')}&type=${encodeURIComponent(dl.type || 'video')}`;
-                if (dl.audio_url) {
-                    streamUrl += `&audio_url=${encodeURIComponent(dl.audio_url)}`;
+                let streamUrl = '';
+                if (dl.type === 'zip') {
+                    streamUrl = dl.url;
+                } else {
+                    streamUrl = `${baseUrl}/download/file?url=${encodeURIComponent(dl.url)}&name=${encodeURIComponent(dl.filename || 'media')}&type=${encodeURIComponent(dl.type || 'video')}`;
+                    if (dl.audio_url) {
+                        streamUrl += `&audio_url=${encodeURIComponent(dl.audio_url)}`;
+                    }
                 }
                 
                 btn.href = streamUrl;
@@ -332,6 +396,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (isLarge && dl.type === 'video') {
                         e.preventDefault();
                         openCompressionDialog(dl, streamUrl);
+                    } else if (dl.type === 'zip') {
+                        showToast('📦 Mengemas dan mengunduh paket ZIP semua foto...', 'info');
+                    } else if (dl.type === 'image') {
+                        showToast('🖼️ Mengunduh foto kualitas HD...', 'info');
                     } else {
                         showToast('⚡ Mengunduh berkas...', 'info');
                     }

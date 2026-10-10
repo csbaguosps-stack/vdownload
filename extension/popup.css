@@ -723,6 +723,28 @@ body {
   box-shadow: 0 5px 14px rgba(16, 185, 129, 0.35);
 }
 
+.btn-dl-option.image {
+  background: linear-gradient(135deg, #e11d48 0%, #ec4899 100%);
+  color: #ffffff;
+  box-shadow: 0 3px 10px rgba(225, 29, 72, 0.25);
+}
+
+.btn-dl-option.image:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(225, 29, 72, 0.35);
+}
+
+.btn-dl-option.zip {
+  background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.28);
+}
+
+.btn-dl-option.zip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+}
+
 .btn-dl-option.cover {
   background: #f8fafc;
   border: 1px solid #cbd5e1;
