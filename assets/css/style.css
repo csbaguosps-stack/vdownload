@@ -104,24 +104,28 @@ body {
 .gradient-text {
     background: var(--gradient-primary);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
 .brand-gradient-tiktok {
     background: var(--gradient-tiktok);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
 .brand-gradient-ig {
     background: var(--gradient-instagram);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
 .brand-gradient-shopee {
     background: var(--gradient-shopee);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -473,6 +477,7 @@ body {
 .line-clamp-2 {
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -480,6 +485,7 @@ body {
 .line-clamp-3 {
     display: -webkit-box;
     -webkit-line-clamp: 3;
+    line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
