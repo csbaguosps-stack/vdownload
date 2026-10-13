@@ -13,6 +13,7 @@
   function isSupportedVideoPage(url) {
     const u = url.toLowerCase();
     return (
+      (u.includes('music.youtube.com') && (u.includes('/watch') || u.includes('/playlist') || u.includes('/channel') || u.includes('/album'))) ||
       (u.includes('youtube.com') && (u.includes('/watch') || u.includes('/shorts/'))) ||
       (u.includes('youtu.be/')) ||
       (u.includes('tiktok.com') && (u.includes('/video/') || u.includes('/v/') || u.includes('/photo/'))) ||
@@ -227,7 +228,9 @@
           data-size="${item.size_bytes || 0}"
           data-type="${item.type || 'video'}"
           data-quality="${encodeURIComponent(item.quality || '')}"
-          data-label="${encodeURIComponent(item.label || '')}">
+          data-label="${encodeURIComponent(item.label || '')}"
+          data-audio-url="${encodeURIComponent(item.audio_url || '')}"
+          data-source-url="${encodeURIComponent(item.source_url || '')}">
           📥 ${item.label}
         </button>
       `;
@@ -314,12 +317,28 @@
           }
         }
 
+        let targetDownloadUrl = url;
+        if (!url.includes('/download/file') && !url.includes('/download/zip') && (itemType === 'video' || itemType === 'audio')) {
+          try {
+            const stored = await chrome.storage.sync.get(['serverBaseUrl']);
+            const base = stored?.serverBaseUrl || 'http://localhost/vdownload';
+            let proxyUrl = `${base}/download/file?url=${encodeURIComponent(url)}&name=${encodeURIComponent(filename || 'media')}&type=${encodeURIComponent(itemType || 'video')}`;
+            const audioParam = btn.getAttribute('data-audio-url');
+            if (audioParam) proxyUrl += `&audio_url=${audioParam}`;
+            const sourceParam = btn.getAttribute('data-source-url');
+            if (sourceParam) proxyUrl += `&source_url=${sourceParam}`;
+            targetDownloadUrl = proxyUrl;
+          } catch (e) {
+            // Keep direct url
+          }
+        }
+
         toast.style.display = 'block';
         toast.textContent = `⏳ Mengunduh: ${filename}...`;
 
         chrome.runtime.sendMessage({
           action: 'download_file',
-          url: url,
+          url: targetDownloadUrl,
           filename: filename
         }, (res) => {
           if (res && res.success) {
@@ -353,7 +372,13 @@
     injectDownloadPill();
   }
 
-  // Observe URL changes (SPA navigation on TikTok/Instagram)
+  // Observe YouTube / YouTube Music SPA navigation
+  window.addEventListener('yt-navigate-finish', () => {
+    cachedExtraction = null;
+    setTimeout(injectDownloadPill, 800);
+  });
+
+  // Observe general URL changes (SPA navigation on TikTok/Instagram)
   let lastUrl = location.href;
   new MutationObserver(() => {
     const url = location.href;

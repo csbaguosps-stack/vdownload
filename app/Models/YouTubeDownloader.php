@@ -19,14 +19,16 @@ class YouTubeDownloader implements DownloaderInterface
         $host = strtolower((string)parse_url($url, PHP_URL_HOST));
         return str_contains($host, 'youtube.com') 
             || str_contains($host, 'youtu.be')
-            || str_contains($host, 'music.youtube.com');
+            || str_contains($host, 'music.youtube.com')
+            || str_contains($host, 'm.youtube.com');
     }
 
     public function extract(string $url): array
     {
-        $escapedUrl = escapeshellarg($url);
-        // Use python -m yt_dlp with json dump
-        $command = "python -m yt_dlp --skip-download --dump-single-json --no-warnings --no-playlist {$escapedUrl} 2>&1";
+        // Safe escaping on Windows to prevent % in query parameters from being stripped
+        $safeUrl = '"' . str_replace('"', '\"', $url) . '"';
+        // Use python -m yt_dlp with json dump and Node.js JavaScript runtime
+        $command = "python -m yt_dlp --js-runtimes node --skip-download --dump-single-json --no-warnings --no-playlist {$safeUrl} 2>&1";
         
         $output = shell_exec($command);
         if (!$output) {
@@ -41,19 +43,35 @@ class YouTubeDownloader implements DownloaderInterface
 
         $data = json_decode($output, true);
         if (!$data || !isset($data['id'])) {
-            $errorMsg = 'Video YouTube tidak ditemukan atau berstatus privat/dibatasi usia.';
+            $errorMsg = 'Video YouTube / YouTube Music tidak ditemukan atau berstatus privat/dibatasi usia.';
             if (str_contains($output, 'Private video')) {
-                $errorMsg = 'Video YouTube berstatus privat.';
+                $errorMsg = 'Video/lagu YouTube berstatus privat.';
             } elseif (str_contains($output, 'Video unavailable')) {
-                $errorMsg = 'Video YouTube tidak tersedia atau telah dihapus.';
+                $errorMsg = 'Video/lagu YouTube tidak tersedia atau telah dihapus.';
             }
             throw new \RuntimeException($errorMsg);
         }
 
         $id = (string)$data['id'];
-        $title = !empty($data['title']) ? $data['title'] : 'YouTube Video';
-        $author = !empty($data['uploader']) ? $data['uploader'] : (!empty($data['channel']) ? $data['channel'] : 'YouTube Creator');
+        $host = strtolower((string)parse_url($url, PHP_URL_HOST));
+        $isMusic = str_contains($host, 'music.youtube.com') 
+            || !empty($data['track']) 
+            || !empty($data['artist']) 
+            || !empty($data['album']);
+
+        $title = !empty($data['track']) 
+            ? $data['track'] 
+            : (!empty($data['title']) ? $data['title'] : ($isMusic ? 'YouTube Music Track' : 'YouTube Video'));
+
+        $author = !empty($data['artist']) 
+            ? $data['artist'] 
+            : (!empty($data['uploader']) 
+                ? $data['uploader'] 
+                : (!empty($data['channel']) ? $data['channel'] : ($isMusic ? 'Music Artist' : 'YouTube Creator')));
+
+        $album = !empty($data['album']) ? $data['album'] : '';
         $cleanAuthor = preg_replace('/[^a-zA-Z0-9_-]/', '_', $author);
+        $cleanTitle = preg_replace('/[^a-zA-Z0-9_-]/', '_', $title);
         $cleanId = preg_replace('/[^a-zA-Z0-9_-]/', '_', $id);
 
         // Format duration
@@ -69,20 +87,36 @@ class YouTubeDownloader implements DownloaderInterface
             $durationStr = '00:00';
         }
 
-        // Best Thumbnail
+        // Best Thumbnail (Find highest resolution artwork, especially for YT Music album covers)
         $thumbnail = "https://i.ytimg.com/vi/{$id}/maxresdefault.jpg";
-        if (!empty($data['thumbnail'])) {
+        if (!empty($data['thumbnails']) && is_array($data['thumbnails'])) {
+            $bestThumb = null;
+            $maxArea = 0;
+            foreach ($data['thumbnails'] as $t) {
+                $w = (int)($t['width'] ?? 0);
+                $h = (int)($t['height'] ?? 0);
+                $area = $w * $h;
+                if ($area > $maxArea && !empty($t['url'])) {
+                    $maxArea = $area;
+                    $bestThumb = $t['url'];
+                }
+            }
+            if ($bestThumb) {
+                $thumbnail = $bestThumb;
+            }
+        } elseif (!empty($data['thumbnail'])) {
             $thumbnail = $data['thumbnail'];
         }
 
         $formats = $data['formats'] ?? [];
         $downloads = [];
 
-        // 1. Find Best 1080p Full HD Video Stream
+        // 1. Find Best Streams
         $f1080 = null;
         $f720 = null;
         $fSD = null;
         $bestAudio = null;
+        $bestM4a = null;
         $bestProgressive = null;
 
         foreach ($formats as $f) {
@@ -90,11 +124,11 @@ class YouTubeDownloader implements DownloaderInterface
             $acodec = $f['acodec'] ?? 'none';
             $height = (int)($f['height'] ?? 0);
             $ext = $f['ext'] ?? 'mp4';
-            $url = $f['url'] ?? '';
+            $urlStream = $f['url'] ?? '';
 
-            if (empty($url)) continue;
+            if (empty($urlStream)) continue;
 
-            // Progressive (both audio and video)
+            // Progressive (both audio and video in single stream)
             if ($vcodec !== 'none' && $acodec !== 'none') {
                 if ($height >= 720 && (!$bestProgressive || $height > ($bestProgressive['height'] ?? 0))) {
                     $bestProgressive = $f;
@@ -120,95 +154,198 @@ class YouTubeDownloader implements DownloaderInterface
                 if (!$bestAudio || $abr > (float)($bestAudio['abr'] ?? 0)) {
                     $bestAudio = $f;
                 }
+                if ($ext === 'm4a' || str_contains($acodec, 'mp4a')) {
+                    if (!$bestM4a || $abr > (float)($bestM4a['abr'] ?? 0)) {
+                        $bestM4a = $f;
+                    }
+                }
             }
         }
 
-        // Option 1: Full HD 1080p (Auto-Compressed with Audio)
-        if ($f1080) {
-            $sz1080 = (int)($f1080['filesize'] ?? ($f1080['filesize_approx'] ?? 0));
-            $sz1080Formatted = $sz1080 > 0 ? round($sz1080 / (1024 * 1024), 1) . ' MB' : '';
-            $downloads[] = [
-                'type' => 'video',
-                'label' => 'Unduh Video Full HD 1080p (MP4 - Kompres Otomatis Jernih)',
-                'quality' => '⭐ 1080p Full HD' . ($sz1080Formatted ? " • {$sz1080Formatted}" : ''),
-                'icon' => 'bi-badge-hd-fill',
-                'btn_class' => 'btn-youtube-hd',
-                'url' => $f1080['url'],
-                'audio_url' => $bestAudio ? $bestAudio['url'] : null,
-                'size_bytes' => $sz1080,
-                'size_formatted' => $sz1080Formatted,
-                'filename' => "youtube_{$cleanAuthor}_{$cleanId}_1080p.mp4"
-            ];
-        }
+        $filePrefix = $isMusic ? 'ytmusic' : 'youtube';
 
-        // Option 2: HD 720p
-        if ($f720 || $bestProgressive) {
-            $target720 = $bestProgressive ?: $f720;
-            $hasAudio = isset($target720['acodec']) && $target720['acodec'] !== 'none';
-            $sz720 = (int)($target720['filesize'] ?? ($target720['filesize_approx'] ?? 0));
-            $sz720Formatted = $sz720 > 0 ? round($sz720 / (1024 * 1024), 1) . ' MB' : '';
-            $downloads[] = [
-                'type' => 'video',
-                'label' => 'Unduh Video HD 720p (MP4 - Kompres Cerdas)',
-                'quality' => 'HD 720p' . ($sz720Formatted ? " • {$sz720Formatted}" : ''),
-                'icon' => 'bi-play-circle-fill',
-                'btn_class' => 'btn-youtube',
-                'url' => $target720['url'],
-                'audio_url' => (!$hasAudio && $bestAudio) ? $bestAudio['url'] : null,
-                'size_bytes' => $sz720,
-                'size_formatted' => $sz720Formatted,
-                'filename' => "youtube_{$cleanAuthor}_{$cleanId}_720p.mp4"
-            ];
-        }
+        // 2. Build tailored downloads list
+        if ($isMusic) {
+            // === YOUTUBE MUSIC DOWNLOAD OPTIONS ===
+            // Primary 1: HQ 320kbps MP3 Audio (Studio Quality, Auto-Transcoded / Compressed)
+            if ($bestAudio) {
+                $downloads[] = [
+                    'type' => 'audio',
+                    'label' => 'Unduh Audio Musik MP3 (Kualitas Tinggi 320k Studio)',
+                    'quality' => '⭐ MP3 320k HQ',
+                    'icon' => 'bi-music-note-beamed',
+                    'btn_class' => 'btn-youtube-music',
+                    'url' => $bestAudio['url'],
+                    'source_url' => $url,
+                    'filename' => "{$filePrefix}_{$cleanAuthor}_{$cleanTitle}_320k.mp3"
+                ];
+            }
 
-        // Option 3: Standard SD 360p / 480p
-        if ($fSD) {
-            $downloads[] = [
-                'type' => 'video',
-                'label' => 'Unduh Video Format Hemat Kuota (SD 360p/480p)',
-                'quality' => 'Web SD (Ekstra Ringan)',
-                'icon' => 'bi-lightning-charge-fill',
-                'btn_class' => 'btn-download-sd',
-                'url' => $fSD['url'],
-                'audio_url' => (isset($fSD['acodec']) && $fSD['acodec'] === 'none' && $bestAudio) ? $bestAudio['url'] : null,
-                'filename' => "youtube_{$cleanAuthor}_{$cleanId}_SD.mp4"
-            ];
-        }
+            // Primary 2: Original M4A / AAC (Direct Playable on iOS/Android/Windows)
+            if ($bestM4a) {
+                $szM4a = (int)($bestM4a['filesize'] ?? ($bestM4a['filesize_approx'] ?? 0));
+                $szM4aFormatted = $szM4a > 0 ? round($szM4a / (1024 * 1024), 1) . ' MB' : '';
+                $downloads[] = [
+                    'type' => 'audio',
+                    'label' => 'Unduh Audio Format M4A / AAC (Format Asli Tanpa Konversi)',
+                    'quality' => 'M4A Original' . ($szM4aFormatted ? " • {$szM4aFormatted}" : ''),
+                    'icon' => 'bi-file-earmark-music-fill',
+                    'btn_class' => 'btn-download-audio',
+                    'url' => $bestM4a['url'],
+                    'source_url' => $url,
+                    'size_bytes' => $szM4a,
+                    'size_formatted' => $szM4aFormatted,
+                    'filename' => "{$filePrefix}_{$cleanAuthor}_{$cleanTitle}.m4a"
+                ];
+            }
 
-        // Option 4: Audio Musik MP3 (Auto-Compressed HQ)
-        if ($bestAudio) {
-            $downloads[] = [
-                'type' => 'audio',
-                'label' => 'Unduh Audio Musik MP3 (Kompres Otomatis - Jernih & Ringan)',
-                'quality' => 'Audio MP3 HQ',
-                'icon' => 'bi-music-note-beamed',
-                'btn_class' => 'btn-download-audio',
-                'url' => $bestAudio['url'],
-                'filename' => "youtube_{$cleanAuthor}_{$cleanId}_audio.mp3"
-            ];
-        }
+            // Primary 3: Full HD 1080p Music Video with Audio
+            if ($f1080) {
+                $sz1080 = (int)($f1080['filesize'] ?? ($f1080['filesize_approx'] ?? 0));
+                $sz1080Formatted = $sz1080 > 0 ? round($sz1080 / (1024 * 1024), 1) . ' MB' : '';
+                $downloads[] = [
+                    'type' => 'video',
+                    'label' => 'Unduh Video Musik Full HD 1080p (MP4 Jernih + Audio)',
+                    'quality' => '⭐ 1080p Full HD' . ($sz1080Formatted ? " • {$sz1080Formatted}" : ''),
+                    'icon' => 'bi-badge-hd-fill',
+                    'btn_class' => 'btn-youtube-hd',
+                    'url' => $f1080['url'],
+                    'audio_url' => $bestAudio ? $bestAudio['url'] : null,
+                    'source_url' => $url,
+                    'size_bytes' => $sz1080,
+                    'size_formatted' => $sz1080Formatted,
+                    'filename' => "{$filePrefix}_{$cleanAuthor}_{$cleanTitle}_1080p.mp4"
+                ];
+            }
 
-        // Option 5: Cover / Thumbnail HD
-        if (!empty($thumbnail)) {
-            $downloads[] = [
-                'type' => 'image',
-                'label' => 'Unduh Cover / Thumbnail HD (Resolusi Penuh)',
-                'quality' => 'HD Image',
-                'icon' => 'bi-image',
-                'btn_class' => 'btn-download-cover',
-                'url' => $thumbnail,
-                'filename' => "youtube_{$cleanAuthor}_{$cleanId}_cover.jpg"
-            ];
+            // Primary 4: HD 720p Music Video
+            if ($f720 || $bestProgressive) {
+                $target720 = $bestProgressive ?: $f720;
+                $hasAudio = isset($target720['acodec']) && $target720['acodec'] !== 'none';
+                $sz720 = (int)($target720['filesize'] ?? ($target720['filesize_approx'] ?? 0));
+                $sz720Formatted = $sz720 > 0 ? round($sz720 / (1024 * 1024), 1) . ' MB' : '';
+                $downloads[] = [
+                    'type' => 'video',
+                    'label' => 'Unduh Video Musik HD 720p (MP4 Cerdas)',
+                    'quality' => 'HD 720p' . ($sz720Formatted ? " • {$sz720Formatted}" : ''),
+                    'icon' => 'bi-play-circle-fill',
+                    'btn_class' => 'btn-youtube',
+                    'url' => $target720['url'],
+                    'audio_url' => (!$hasAudio && $bestAudio) ? $bestAudio['url'] : null,
+                    'source_url' => $url,
+                    'size_bytes' => $sz720,
+                    'size_formatted' => $sz720Formatted,
+                    'filename' => "{$filePrefix}_{$cleanAuthor}_{$cleanTitle}_720p.mp4"
+                ];
+            }
+
+            // Primary 5: Album Art / Cover HD
+            if (!empty($thumbnail)) {
+                $downloads[] = [
+                    'type' => 'image',
+                    'label' => 'Unduh Cover Album HD (Artwork Resolusi Penuh)',
+                    'quality' => 'HD Artwork',
+                    'icon' => 'bi-image',
+                    'btn_class' => 'btn-download-cover',
+                    'url' => $thumbnail,
+                    'filename' => "{$filePrefix}_{$cleanAuthor}_{$cleanTitle}_cover.jpg"
+                ];
+            }
+        } else {
+            // === REGULAR YOUTUBE VIDEO DOWNLOAD OPTIONS ===
+            // Option 1: Full HD 1080p
+            if ($f1080) {
+                $sz1080 = (int)($f1080['filesize'] ?? ($f1080['filesize_approx'] ?? 0));
+                $sz1080Formatted = $sz1080 > 0 ? round($sz1080 / (1024 * 1024), 1) . ' MB' : '';
+                $downloads[] = [
+                    'type' => 'video',
+                    'label' => 'Unduh Video Full HD 1080p (MP4 - Kompres Otomatis Jernih)',
+                    'quality' => '⭐ 1080p Full HD' . ($sz1080Formatted ? " • {$sz1080Formatted}" : ''),
+                    'icon' => 'bi-badge-hd-fill',
+                    'btn_class' => 'btn-youtube-hd',
+                    'url' => $f1080['url'],
+                    'audio_url' => $bestAudio ? $bestAudio['url'] : null,
+                    'source_url' => $url,
+                    'size_bytes' => $sz1080,
+                    'size_formatted' => $sz1080Formatted,
+                    'filename' => "youtube_{$cleanAuthor}_{$cleanId}_1080p.mp4"
+                ];
+            }
+
+            // Option 2: HD 720p
+            if ($f720 || $bestProgressive) {
+                $target720 = $bestProgressive ?: $f720;
+                $hasAudio = isset($target720['acodec']) && $target720['acodec'] !== 'none';
+                $sz720 = (int)($target720['filesize'] ?? ($target720['filesize_approx'] ?? 0));
+                $sz720Formatted = $sz720 > 0 ? round($sz720 / (1024 * 1024), 1) . ' MB' : '';
+                $downloads[] = [
+                    'type' => 'video',
+                    'label' => 'Unduh Video HD 720p (MP4 - Kompres Cerdas)',
+                    'quality' => 'HD 720p' . ($sz720Formatted ? " • {$sz720Formatted}" : ''),
+                    'icon' => 'bi-play-circle-fill',
+                    'btn_class' => 'btn-youtube',
+                    'url' => $target720['url'],
+                    'audio_url' => (!$hasAudio && $bestAudio) ? $bestAudio['url'] : null,
+                    'source_url' => $url,
+                    'size_bytes' => $sz720,
+                    'size_formatted' => $sz720Formatted,
+                    'filename' => "youtube_{$cleanAuthor}_{$cleanId}_720p.mp4"
+                ];
+            }
+
+            // Option 3: Standard SD 360p / 480p
+            if ($fSD) {
+                $downloads[] = [
+                    'type' => 'video',
+                    'label' => 'Unduh Video Format Hemat Kuota (SD 360p/480p)',
+                    'quality' => 'Web SD (Ekstra Ringan)',
+                    'icon' => 'bi-lightning-charge-fill',
+                    'btn_class' => 'btn-download-sd',
+                    'url' => $fSD['url'],
+                    'audio_url' => (isset($fSD['acodec']) && $fSD['acodec'] === 'none' && $bestAudio) ? $bestAudio['url'] : null,
+                    'source_url' => $url,
+                    'filename' => "youtube_{$cleanAuthor}_{$cleanId}_SD.mp4"
+                ];
+            }
+
+            // Option 4: Audio Musik MP3 (Auto-Compressed HQ)
+            if ($bestAudio) {
+                $downloads[] = [
+                    'type' => 'audio',
+                    'label' => 'Unduh Audio Musik MP3 (Kompres Otomatis - Jernih & Ringan)',
+                    'quality' => 'Audio MP3 HQ',
+                    'icon' => 'bi-music-note-beamed',
+                    'btn_class' => 'btn-download-audio',
+                    'url' => $bestAudio['url'],
+                    'source_url' => $url,
+                    'filename' => "youtube_{$cleanAuthor}_{$cleanId}_audio.mp3"
+                ];
+            }
+
+            // Option 5: Cover / Thumbnail HD
+            if (!empty($thumbnail)) {
+                $downloads[] = [
+                    'type' => 'image',
+                    'label' => 'Unduh Cover / Thumbnail HD (Resolusi Penuh)',
+                    'quality' => 'HD Image',
+                    'icon' => 'bi-image',
+                    'btn_class' => 'btn-download-cover',
+                    'url' => $thumbnail,
+                    'filename' => "youtube_{$cleanAuthor}_{$cleanId}_cover.jpg"
+                ];
+            }
         }
 
         $previewVideoUrl = $bestProgressive['url'] ?? ($f720['url'] ?? ($fSD['url'] ?? ''));
 
         return [
-            'platform' => 'youtube',
-            'platform_name' => 'YouTube',
+            'platform' => $isMusic ? 'ytmusic' : 'youtube',
+            'platform_name' => $isMusic ? 'YouTube Music' : 'YouTube',
+            'media_type' => $isMusic ? 'audio' : 'video',
             'title' => $title,
             'author' => $author,
-            'author_avatar' => 'https://www.youtube.com/favicon.ico',
+            'album' => $album,
+            'author_avatar' => $isMusic ? 'https://music.youtube.com/favicon.ico' : 'https://www.youtube.com/favicon.ico',
             'duration' => $durationStr,
             'resolution' => $f1080 ? '1080p' : ($f720 ? '720p' : '360p'),
             'thumbnail' => $thumbnail,

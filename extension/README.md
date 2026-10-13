@@ -11,16 +11,16 @@ Developed by: **cs.baguosps@gmail.com**
 ## 🌟 Fitur Utama Ekstensi
 
 1. **⚡ Standalone Direct Downloader (100% Berdiri Sendiri)**:
-   - Mengekstrak dan mengunduh video & musik YouTube, TikTok, Shopee Video, dan Instagram langsung di browser.
-   - Pilihan resolusi lengkap: Video 1080p Full HD, HD 720p, SD hemat kuota, musik MP3/M4A, serta thumbnail resolusi penuh.
+   - Mengekstrak dan mengunduh video & musik YouTube, YouTube Music, TikTok, Shopee Video, dan Instagram langsung di browser.
+   - Pilihan resolusi lengkap: Audio MP3 320k Studio Quality, Video 1080p Full HD, HD 720p, SD hemat kuota, musik M4A, serta cover album artwork resolusi penuh.
    - File langsung diunduh ke folder Downloads komputer via API Chrome Downloads!
 
 2. **🎯 Deteksi Tab Aktif Otomatis**:
-   - Mendeteksi secara instan jika tab aktif adalah video YouTube (Video & Shorts), TikTok, Instagram Reels, atau Shopee Video.
-   - Cukup klik ikon ekstensi &rarr; klik **Unduh Video di Tab Ini**.
+   - Mendeteksi secara instan jika tab aktif adalah video YouTube (Video & Shorts), YouTube Music (`music.youtube.com`), TikTok, Instagram Reels, atau Shopee Video.
+   - Cukup klik ikon ekstensi &rarr; klik **Unduh Media di Tab Ini**.
 
 3. **🔘 Tombol Unduh Mengambang Standalone (Floating Button)**:
-   - Muncul di pojok kanan bawah saat membuka video di YouTube, TikTok, Instagram, atau Shopee.
+   - Muncul di pojok kanan bawah saat membuka video/lagu di YouTube, YouTube Music, TikTok, Instagram, atau Shopee.
    - Klik tombol &rarr; panel instan muncul langsung di halaman &rarr; pilih resolusi Video HD atau Musik MP3 &rarr; file langsung terunduh ke komputer Anda!
 
 4. **🔄 Tombol Reload Ekstensi Cepat**:

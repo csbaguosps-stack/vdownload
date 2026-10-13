@@ -21,6 +21,7 @@
 *.log
 *.tmp
 *.bak
+/*.zip
 
 # OS & IDE metadata
 .DS_Store

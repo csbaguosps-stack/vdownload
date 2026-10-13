@@ -39,7 +39,7 @@ $fileSizeKb = $fileSizeKb ?? 15.0;
                                     <i class="bi bi-lightning-charge-fill me-1"></i> 100% Standalone (Direct)
                                 </span>
                                 <span class="badge bg-light text-secondary border fw-bold px-2 py-1">
-                                    v1.3.0
+                                    v1.4.0
                                 </span>
                             </div>
                             <h3 class="fw-extrabold text-dark mb-2">Unduh Ekstensi VDownload Pro (Standalone)</h3>

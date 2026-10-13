@@ -89,6 +89,9 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function detectPlatform(url) {
         const u = url.toLowerCase();
+        if (u.includes('music.youtube.com')) {
+            return 'ytmusic';
+        }
         if (u.includes('youtube.com') || u.includes('youtu.be')) {
             return 'youtube';
         }
@@ -119,7 +122,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Platform icon detection
         const platform = detectPlatform(val);
-        if (platform === 'youtube') {
+        if (platform === 'ytmusic') {
+            platformIcon.innerHTML = '<i class="bi bi-music-note-beamed fs-4 text-danger"></i>';
+        } else if (platform === 'youtube') {
             platformIcon.innerHTML = '<i class="bi bi-youtube fs-4 text-danger"></i>';
         } else if (platform === 'tiktok') {
             platformIcon.innerHTML = '<i class="bi bi-tiktok fs-4 text-info"></i>';
@@ -181,7 +186,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const filter = tab.getAttribute('data-platform');
             if (filter === 'all') {
-                input.placeholder = 'Tempel tautan video YouTube, TikTok, Instagram, atau Shopee di sini...';
+                input.placeholder = 'Tempel tautan video YouTube, YT Music, TikTok, Instagram, atau Shopee di sini...';
+            } else if (filter === 'ytmusic') {
+                input.placeholder = 'Tempel tautan YouTube Music (contoh: https://music.youtube.com/watch?v=...)...';
             } else if (filter === 'youtube') {
                 input.placeholder = 'Tempel tautan YouTube video / musik (contoh: https://www.youtube.com/watch?v=...)...';
             } else if (filter === 'tiktok') {
@@ -250,7 +257,9 @@ document.addEventListener('DOMContentLoaded', () => {
         resultPlatformBadge.className = `badge badge-platform badge-${platform}`;
         resultPlatformBadge.textContent = media.platform_name || platform.toUpperCase();
 
-        if (platform === 'youtube') {
+        if (platform === 'ytmusic') {
+            resultAccent.style.background = 'linear-gradient(135deg, #e11d48 0%, #be123c 50%, #881337 100%)';
+        } else if (platform === 'youtube') {
             resultAccent.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #991b1b 100%)';
         } else if (platform === 'shopee') {
             resultAccent.style.background = 'var(--gradient-shopee)';
@@ -264,7 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Author Info
         authorName.textContent = media.author || 'Creator';
-        authorMeta.textContent = `${media.platform_name} Official`;
+        authorMeta.textContent = media.album ? `${media.album} • ${media.platform_name}` : `${media.platform_name} Official`;
         if (media.author_avatar) {
             authorAvatar.src = media.author_avatar;
             authorAvatar.classList.remove('d-none');
@@ -373,6 +382,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     streamUrl = `${baseUrl}/download/file?url=${encodeURIComponent(dl.url)}&name=${encodeURIComponent(dl.filename || 'media')}&type=${encodeURIComponent(dl.type || 'video')}`;
                     if (dl.audio_url) {
                         streamUrl += `&audio_url=${encodeURIComponent(dl.audio_url)}`;
+                    }
+                    if (dl.source_url) {
+                        streamUrl += `&source_url=${encodeURIComponent(dl.source_url)}`;
                     }
                 }
                 

@@ -998,6 +998,26 @@ body {
     border: 1px solid #fca5a5 !important;
 }
 
+.badge-ytmusic {
+    background: #ffe4e6 !important;
+    color: #e11d48 !important;
+    border: 1px solid #fda4af !important;
+}
+
+.btn-youtube-music {
+    background: linear-gradient(135deg, #e11d48 0%, #be123c 50%, #881337 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(225, 29, 72, 0.35) !important;
+    border: none !important;
+}
+
+.btn-youtube-music:hover {
+    background: linear-gradient(135deg, #be123c 0%, #881337 100%) !important;
+    color: #ffffff !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(225, 29, 72, 0.45) !important;
+}
+
 .btn-youtube-hd {
     background: linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%) !important;
     color: #ffffff !important;

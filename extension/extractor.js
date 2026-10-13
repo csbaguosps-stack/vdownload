@@ -13,6 +13,9 @@
   Extractor.detectPlatform = function (url) {
     if (!url) return null;
     const u = url.toLowerCase();
+    if (u.includes('music.youtube.com')) {
+      return 'ytmusic';
+    }
     if (u.includes('youtube.com') || u.includes('youtu.be')) {
       return 'youtube';
     }
@@ -661,38 +664,40 @@
 
     // Strategy 2: Client-side YouTube oEmbed
     if (videoId) {
+      const isMusic = url.includes('music.youtube.com');
       const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
       const oembedResp = await fetch(oembedUrl);
       if (oembedResp.ok) {
         const oembed = await oembedResp.json();
         const maxThumb = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
         return {
-          platform: 'youtube',
-          platformName: 'YouTube',
-          title: oembed.title || 'YouTube Video',
-          author: oembed.author_name || 'YouTube Creator',
-          authorAvatar: 'https://www.youtube.com/favicon.ico',
-          duration: 'Video',
+          platform: isMusic ? 'ytmusic' : 'youtube',
+          platformName: isMusic ? 'YouTube Music' : 'YouTube',
+          title: oembed.title || (isMusic ? 'YouTube Music Track' : 'YouTube Video'),
+          author: oembed.author_name || (isMusic ? 'Music Artist' : 'YouTube Creator'),
+          authorAvatar: isMusic ? 'https://music.youtube.com/favicon.ico' : 'https://www.youtube.com/favicon.ico',
+          duration: isMusic ? 'Audio/Video' : 'Video',
           thumbnail: maxThumb,
           previewVideo: '',
           downloads: [
             {
-              type: 'video',
-              label: 'Unduh Video via VDownload Web Server',
-              quality: '⭐ Full HD',
-              icon: 'badge-hd',
-              btnClass: 'btn-youtube-hd',
+              type: isMusic ? 'audio' : 'video',
+              label: isMusic ? 'Unduh Audio MP3 via VDownload Server' : 'Unduh Video via VDownload Web Server',
+              quality: isMusic ? '⭐ MP3 320k' : '⭐ Full HD',
+              icon: isMusic ? 'music' : 'badge-hd',
+              btnClass: isMusic ? 'btn-youtube-music' : 'btn-youtube-hd',
               url: `${serverBaseUrl}/?url=${encodeURIComponent(url)}`,
-              filename: `youtube_${videoId}.mp4`
+              source_url: url,
+              filename: isMusic ? `ytmusic_${videoId}.mp3` : `youtube_${videoId}.mp4`
             },
             {
               type: 'image',
-              label: 'Unduh Cover / Thumbnail HD',
-              quality: 'HD Image',
+              label: isMusic ? 'Unduh Cover Album HD' : 'Unduh Cover / Thumbnail HD',
+              quality: 'HD Artwork',
               icon: 'image',
               btnClass: 'btn-cover',
               url: maxThumb,
-              filename: `youtube_${videoId}_cover.jpg`
+              filename: isMusic ? `ytmusic_${videoId}_cover.jpg` : `youtube_${videoId}_cover.jpg`
             }
           ]
         };
@@ -745,7 +750,7 @@
       // Server not reachable or timeout, proceed to standalone client-side engine
     }
 
-    if (platform === 'youtube') {
+    if (platform === 'youtube' || platform === 'ytmusic') {
       return await Extractor.extractYouTube(url);
     } else if (platform === 'tiktok') {
       return await Extractor.extractTikTok(url);

@@ -159,6 +159,7 @@ class DownloadController extends Controller
         $fileName = $_GET['name'] ?? $_GET['filename'] ?? 'downloaded_video.mp4';
         $type = $_GET['type'] ?? 'video';
         $audioUrl = $_GET['audio_url'] ?? null;
+        $sourceUrl = $_GET['source_url'] ?? null;
         $cachedParam = isset($_GET['cached']);
         $compressParam = $_GET['compress'] ?? null;
         $forceRaw = ($compressParam === '0' || $compressParam === 'false' || isset($_GET['raw']));
@@ -186,8 +187,27 @@ class DownloadController extends Controller
         }
 
         $isHead = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'HEAD';
+        $isYtSource = !empty($sourceUrl) && (str_contains($sourceUrl, 'youtube.com') || str_contains($sourceUrl, 'youtu.be'));
 
-        // 1. FAST CACHED / EXPLICIT COMPRESSED DELIVERY
+        // 1. DEDICATED YOUTUBE / YT MUSIC CONVERSION & MERGING
+        if (!$forceRaw && $isYtSource && MediaCompressor::isAvailable()) {
+            if ($type === 'audio' && str_ends_with(strtolower($fileName), '.mp3')) {
+                $targetFile = MediaCompressor::transcodeYtAudio($sourceUrl, '320k');
+                if ($targetFile && file_exists($targetFile) && filesize($targetFile) > 1024) {
+                    $this->streamLocalFile($targetFile, $fileName, 'audio/mpeg', $isHead);
+                    exit;
+                }
+            } elseif ($type === 'video' && !empty($audioUrl)) {
+                $maxH = str_contains($fileName, '720p') ? '720' : '1080';
+                $targetFile = MediaCompressor::mergeYtVideo($sourceUrl, $maxH);
+                if ($targetFile && file_exists($targetFile) && filesize($targetFile) > 1024) {
+                    $this->streamLocalFile($targetFile, $fileName, 'video/mp4', $isHead);
+                    exit;
+                }
+            }
+        }
+
+        // 2. FAST CACHED / EXPLICIT COMPRESSED DELIVERY
         $shouldCompress = !$forceRaw && ($cachedParam || $compressParam === '1') && MediaCompressor::isAvailable() && in_array($type, ['video', 'audio'], true);
 
         if ($shouldCompress) {
@@ -208,32 +228,14 @@ class DownloadController extends Controller
                     }
                 }
 
-                header('Content-Description: File Transfer');
-                header('Content-Type: ' . $mime);
-                header('Content-Disposition: attachment; filename="' . $fileName . '"');
-                header('Expires: 0');
-                header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
-                header('Pragma: public');
-                header('Content-Length: ' . filesize($targetFile));
-                header('X-VDownload-Auto-Compressed: 1');
-
-                if (!$isHead) {
-                    $fp = fopen($targetFile, 'rb');
-                    if ($fp) {
-                        while (!feof($fp)) {
-                            echo fread($fp, 256 * 1024);
-                            flush();
-                        }
-                        fclose($fp);
-                    }
-                }
+                $this->streamLocalFile($targetFile, $fileName, $mime, $isHead);
                 exit;
             }
         }
 
-        // 2. FALLBACK: Direct cURL proxy streaming
+        // 3. FALLBACK: Direct cURL proxy streaming
         $mime = match ($type) {
-            'audio' => 'audio/mpeg',
+            'audio' => (str_ends_with(strtolower($fileName), '.m4a') ? 'audio/mp4' : 'audio/mpeg'),
             'image' => 'image/jpeg',
             default => 'video/mp4'
         };
@@ -245,13 +247,24 @@ class DownloadController extends Controller
         header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
         header('Pragma: public');
 
+        $headers = [
+            'Accept: */*',
+            'Accept-Language: en-US,en;q=0.9',
+            'Sec-Fetch-Mode: no-cors'
+        ];
+        if (str_contains($fileUrl, 'googlevideo.com')) {
+            $headers[] = 'Referer: https://music.youtube.com/';
+            $headers[] = 'Origin: https://music.youtube.com';
+        }
+
         // Stream using cURL with live buffer flush and Content-Length passthrough
         $ch = curl_init($fileUrl);
         curl_setopt_array($ch, [
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+            CURLOPT_HTTPHEADER => $headers,
             CURLOPT_NOBODY => $isHead,
             CURLOPT_BUFFERSIZE => 128 * 1024,
             CURLOPT_HEADERFUNCTION => function($curl, $headerLine) {
@@ -272,6 +285,32 @@ class DownloadController extends Controller
         curl_exec($ch);
         curl_close($ch);
         exit;
+    }
+
+    /**
+     * Helper to stream local cached file
+     */
+    private function streamLocalFile(string $filePath, string $downloadName, string $mime, bool $isHead): void
+    {
+        header('Content-Description: File Transfer');
+        header('Content-Type: ' . $mime);
+        header('Content-Disposition: attachment; filename="' . $downloadName . '"');
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+        header('Pragma: public');
+        header('Content-Length: ' . filesize($filePath));
+        header('X-VDownload-Auto-Compressed: 1');
+
+        if (!$isHead) {
+            $fp = fopen($filePath, 'rb');
+            if ($fp) {
+                while (!feof($fp)) {
+                    echo fread($fp, 256 * 1024);
+                    flush();
+                }
+                fclose($fp);
+            }
+        }
     }
 
     /**

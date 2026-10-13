@@ -1,7 +1,7 @@
 # 🚀 VDownload Pro - Multi-Platform Video, Photo & Music Downloader
 
-[![Version](https://img.shields.io/badge/Version-v2.1.0-0284c7?style=for-the-badge&logo=git&logoColor=white)](https://github.com/csbaguosps-stack/vdownload)
-[![Extension](https://img.shields.io/badge/Extension-v1.3.0-10b981?style=for-the-badge&logo=googlechrome&logoColor=white)](extension/)
+[![Version](https://img.shields.io/badge/Version-v2.2.0-0284c7?style=for-the-badge&logo=git&logoColor=white)](https://github.com/csbaguosps-stack/vdownload)
+[![Extension](https://img.shields.io/badge/Extension-v1.4.0-10b981?style=for-the-badge&logo=googlechrome&logoColor=white)](extension/)
 [![PHP Version](https://img.shields.io/badge/PHP-8.2%2B-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net/)
 [![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white)](https://getbootstrap.com/)
 [![License](https://img.shields.io/badge/License-Proprietary-0284c7?style=for-the-badge)](mailto:cs.baguosps@gmail.com)
@@ -11,39 +11,45 @@
   <img src="assets/img/preview.png" alt="VDownload Pro Preview" width="100%">
 </p>
 
-**VDownload Pro** adalah aplikasi web dan ekstensi browser modern untuk mengunduh video, foto/gambar, dan audio musik dari **YouTube**, **TikTok**, **Instagram (Reels & Album Foto)**, dan **Shopee Video** tanpa tanda air (*no watermark*) dengan kualitas **Full HD Asli (1080p / 720p)**, pratinjau galeri carousel interaktif, serta paket unduhan berkas ZIP instan.
+**VDownload Pro** adalah aplikasi web dan ekstensi browser modern untuk mengunduh video, foto/gambar, dan audio musik dari **YouTube**, **YouTube Music**, **TikTok**, **Instagram (Reels & Album Foto)**, dan **Shopee Video** tanpa tanda air (*no watermark*) dengan kualitas **Full HD Asli (1080p / 720p)**, audio MP3 320kbps, pratinjau galeri carousel interaktif, serta paket unduhan berkas ZIP instan.
 
-Dilengkapi dengan mesin **Kompresi Cerdas Berakselerasi GPU NVIDIA (NVENC)** agar berkas video hemat kuota hingga ~60% **tanpa mengurangi ketajaman video (anti-pecah)**, serta memiliki **Ekstensi Browser Standalone (v1.3.0)** resmi untuk kemudahan unduh 1-klik langsung di halaman web peramban Anda.
+Dilengkapi dengan mesin **Kompresi Cerdas Berakselerasi GPU NVIDIA (NVENC)** agar berkas video hemat kuota hingga ~60% **tanpa mengurangi ketajaman video (anti-pecah)**, serta memiliki **Ekstensi Browser Standalone (v1.4.0)** resmi untuk kemudahan unduh 1-klik langsung di halaman web peramban Anda.
 
 ---
 
-## 🆕 Catatan Rilis Versi 2.1.0 (Changelog)
+## 🆕 Catatan Rilis Versi 2.2.0 (Changelog)
 
-* **📸 Unduh Foto & Carousel Instagram (Baru)**:
+* **🎧 Ekstraksi & Unduh YouTube Music Penuh (`music.youtube.com`) (Baru)**:
+  * Otomatis mendeteksi tautan lagu, album, dan playlist **YouTube Music** (`music.youtube.com/watch?v=...`).
+  * **Audio Musik MP3 320kbps HQ**: Konversi otomatis instan kualitas audio studio 320k dengan metadata judul lagu, artis, dan album lengkap.
+  * **Audio Asli M4A / AAC**: Pilihan unduhan format native M4A tanpa kompresi ulang untuk perangkat Apple & Android.
+  * **Video Musik Full HD (1080p / 720p)**: Penggabungan video dan audio otomatis dengan FFmpeg sehingga hasil unduhan 100% bersuara jernih.
+  * **Cover Album HD**: Unduh artwork cover album beresolusi penuh dalam 1 klik.
+  * Dukungan navigasi Single Page Application (SPA) YouTube Music di ekstensi browser.
+* **📸 Unduh Foto & Carousel Instagram**:
   * Mendukung unduhan foto tunggal dan album carousel multi-foto Instagram beresolusi penuh (1080p).
   * Opsi tombol instan: **Unduh Semua Foto Sekaligus (.ZIP)** untuk kemudahan mengunduh seluruh album dalam 1 klik.
   * Parser JavaScript Snapsave canggih di sisi server dengan multi-layer fallback ke Instagram GraphQL.
-* **🎵 Unduh Foto Slideshow TikTok (Baru)**:
+* **🎵 Unduh Foto Slideshow TikTok**:
   * Mendukung unduh gambar TikTok Photo Mode / Slideshow tanpa watermark kualitas HD asli.
   * Dilengkapi opsi unduhan paket bundel ZIP serta ekstraksi audio musik MP3.
 * **🖼️ Pratinjau Galeri Interaktif (Carousel Viewer)**:
   * Halaman hasil pencarian dilengkapi slider pratinjau visual dengan kontrol navigasi (*Prev / Next*) dan penghitung jumlah foto (`1 / N`).
-* **🧩 Pembaruan Ekstensi Browser Standalone (v1.3.0)**:
+* **🧩 Pembaruan Ekstensi Browser Standalone**:
   * **CORS Preflight & Universal Origin**: Menambahkan header CORS penuh dan penanganan `OPTIONS` di backend sehingga ekstensi terhubung lancar tanpa blokir browser.
   * **Multi-Layer Fallback**: Server API -> Content Script DOM Extraction (`srcset` 1080p) -> Standalone Extractor.
-  * **Tampilan Khusus**: Tombol unduhan bergradien khusus untuk foto HD (`🖼️`) dan paket ZIP (`📦`).
-  * **Manifest V3 Safe**: Penghapusan dependensi DOMParser di Service Worker untuk performa tanpa hambatan.
+  * **Tampilan Khusus**: Tombol unduhan bergradien khusus untuk musik YT Music (`🎧`), foto HD (`🖼️`), dan paket ZIP (`📦`).
 
 ---
 
 ## 📑 Daftar Isi
 
-- [🆕 Catatan Rilis Versi 2.1.0 (Changelog)](#-catatan-rilis-versi-210-changelog)
+- [🆕 Catatan Rilis Versi 2.2.0 (Changelog)](#-catatan-rilis-versi-220-changelog)
 - [🎯 Ringkasan Dukungan Platform](#-ringkasan-dukungan-platform)
 - [✨ Fitur Unggulan](#-fitur-unggulan)
-  - [1. 🎬 Multi-Platform Extractor (Video & Foto)](#1--multi-platform-extractor-video--foto)
+  - [1. 🎬 Multi-Platform Extractor (Video, Foto & Musik)](#1--multi-platform-extractor-video-foto--musik)
   - [2. ⚡ Mesin Kompresi GPU NVENC & CPU (Anti-Pecah)](#2--mesin-kompresi-gpu-nvenc--cpu-anti-pecah)
-  - [3. 🧩 Ekstensi Browser Standalone (v1.3.0)](#3--ekstensi-browser-standalone-v130)
+  - [3. 🧩 Ekstensi Browser Standalone](#3--ekstensi-browser-standalone)
   - [4. 🎨 Desain Modern & Responsif](#4--desain-modern--responsif)
 - [🛠️ Persyaratan Sistem](#️-persyaratan-sistem)
 - [🚀 Panduan Mulai Cepat (Quick Start)](#-panduan-mulai-cepat-quick-start)
@@ -61,7 +67,7 @@ Dilengkapi dengan mesin **Kompresi Cerdas Berakselerasi GPU NVIDIA (NVENC)** aga
 
 | Platform | Kualitas Video | Kualitas Foto / Album | Audio Musik | Paket ZIP | Keterangan Khusus |
 | :--- | :---: | :---: | :---: | :---: | :--- |
-| **YouTube** | ✅ Full HD 1080p, 720p, SD | ✅ Thumbnail HD JPG | ✅ MP3 / M4A HQ | — | Mendukung Shorts (`/shorts/`), Video Standar, YouTube Music |
+| **YouTube & YT Music** | ✅ Full HD 1080p, 720p, SD | ✅ Cover Album / Thumbnail HD | ✅ **MP3 320k HQ & M4A** | — | Mendukung YouTube Music (`music.youtube.com`), Shorts (`/shorts/`), Video Standar |
 | **TikTok** | ✅ Full HD & Clean SD (No WM) | ✅ **Foto HD Asli (Slideshow)** | ✅ MP3 Original | ✅ **Paket ZIP Semua Foto** | Tanpa watermark, ekstraksi multi-foto & lagu |
 | **Instagram** | ✅ Full HD Reels & Feed Video | ✅ **Foto HD & Carousel Album** | *(Termasuk dlm video)* | ✅ **Paket ZIP Semua Foto** | Mendukung Reels, post foto tunggal & album carousel multi-slide |
 | **Shopee Video** | ✅ **⭐ True Master HD** & SD | ✅ Cover HD JPG | *(Termasuk dlm video)* | — | Stream VOD murni 100% tanpa watermark UI Shopee |
@@ -101,7 +107,7 @@ Dilengkapi dengan mesin **Kompresi Cerdas Berakselerasi GPU NVIDIA (NVENC)** aga
 
 ---
 
-### 3. 🧩 Ekstensi Browser Standalone (v1.3.0)
+### 3. 🧩 Ekstensi Browser Standalone (v1.4.0)
 * Terletak di direktori `extension/` berbasis **Manifest V3**.
 * **100% Mandiri (Standalone)**: Dapat langsung mengunduh video & foto dari peramban tanpa perlu server lokal aktif.
 * **Dukungan CORS Penuh**: Sinkronisasi instan dengan server VDownload lokal dengan izin preflight HTTP `OPTIONS`.

@@ -66,6 +66,17 @@ class MediaCompressor
     }
 
     /**
+     * Safely escape command-line arguments on Windows without stripping % characters
+     */
+    public static function escapeArg(string $arg): string
+    {
+        if (strncasecmp(PHP_OS, 'WIN', 3) === 0) {
+            return '"' . str_replace('"', '\"', $arg) . '"';
+        }
+        return escapeshellarg($arg);
+    }
+
+    /**
      * Check if NVIDIA NVENC hardware acceleration is supported
      */
     public static function hasNvenc(): bool
@@ -80,7 +91,7 @@ class MediaCompressor
             return false;
         }
 
-        $test = @shell_exec(escapeshellarg($ffmpeg) . ' -hide_banner -encoders 2>NUL');
+        $test = @shell_exec(self::escapeArg($ffmpeg) . ' -hide_banner -encoders 2>NUL');
         self::$hasNvencCache = !empty($test) && str_contains($test, 'h264_nvenc');
         return self::$hasNvencCache;
     }
@@ -124,13 +135,26 @@ class MediaCompressor
      * High-speed parallel cURL buffer download to local temp file
      * Prevents FFmpeg's single-threaded HTTP client from lagging on large files.
      */
-    public static function downloadToTemp(string $url, int $timeout = 30): ?string
+    public static function downloadToTemp(string $url, int $timeout = 45, ?string $customUserAgent = null): ?string
     {
-        $tmp = self::getCacheDir() . DIRECTORY_SEPARATOR . 'src_' . uniqid() . '.mp4';
+        $ext = (str_contains($url, 'mime=audio') || str_contains($url, 'audio')) ? '.tmp' : '.mp4';
+        $tmp = self::getCacheDir() . DIRECTORY_SEPARATOR . 'src_' . uniqid() . $ext;
         $fp = fopen($tmp, 'w+');
         if (!$fp) {
             return null;
         }
+
+        $headers = [
+            'Accept: */*',
+            'Accept-Language: en-US,en;q=0.9',
+            'Sec-Fetch-Mode: no-cors'
+        ];
+        if (str_contains($url, 'googlevideo.com')) {
+            $headers[] = 'Referer: https://music.youtube.com/';
+            $headers[] = 'Origin: https://music.youtube.com';
+        }
+
+        $ua = $customUserAgent ?: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -140,7 +164,8 @@ class MediaCompressor
             CURLOPT_SSL_VERIFYHOST => false,
             CURLOPT_TIMEOUT => $timeout,
             CURLOPT_BUFFERSIZE => 512 * 1024,
-            CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_USERAGENT => $ua
         ]);
 
         $success = curl_exec($ch);
@@ -148,13 +173,83 @@ class MediaCompressor
         curl_close($ch);
         fclose($fp);
 
-        if ($success && ($code === 200 || $code === 206) && file_exists($tmp) && filesize($tmp) > 5000) {
+        if ($success && ($code === 200 || $code === 206) && file_exists($tmp) && filesize($tmp) > 1024) {
             return $tmp;
         }
 
         if (file_exists($tmp)) {
             @unlink($tmp);
         }
+        return null;
+    }
+
+    /**
+     * Transcode YouTube / YouTube Music audio directly to pristine MP3 (320kbps)
+     */
+    public static function transcodeYtAudio(string $sourceUrl, string $bitrate = '320k'): ?string
+    {
+        $ffmpeg = self::getFfmpegPath();
+        $cacheDir = self::getCacheDir();
+        $cacheKey = md5($sourceUrl . '_yt_audio_' . $bitrate);
+        $finalFile = $cacheDir . DIRECTORY_SEPARATOR . $cacheKey . '.mp3';
+
+        if (file_exists($finalFile) && filesize($finalFile) > 10240) {
+            if (time() - filemtime($finalFile) < 172800) {
+                return $finalFile;
+            }
+        }
+
+        $tempTemplate = $cacheDir . DIRECTORY_SEPARATOR . 'tmp_' . $cacheKey . '.%(ext)s';
+        $ffmpegArg = $ffmpeg ? ' --ffmpeg-location ' . self::escapeArg($ffmpeg) : '';
+        $cmd = 'python -m yt_dlp --js-runtimes node --no-warnings --no-playlist -x --audio-format mp3 --audio-quality 0' 
+            . $ffmpegArg 
+            . ' -o ' . self::escapeArg($tempTemplate) 
+            . ' ' . self::escapeArg($sourceUrl) . ' 2>&1';
+
+        $output = @shell_exec($cmd);
+        $tempMp3 = $cacheDir . DIRECTORY_SEPARATOR . 'tmp_' . $cacheKey . '.mp3';
+
+        if (file_exists($tempMp3) && filesize($tempMp3) > 10240) {
+            @rename($tempMp3, $finalFile);
+            return $finalFile;
+        }
+
+        return null;
+    }
+
+    /**
+     * Merge YouTube / YouTube Music video and audio streams into single Full HD MP4 with audio
+     */
+    public static function mergeYtVideo(string $sourceUrl, string $maxHeight = '1080'): ?string
+    {
+        $ffmpeg = self::getFfmpegPath();
+        $cacheDir = self::getCacheDir();
+        $cacheKey = md5($sourceUrl . '_yt_video_' . $maxHeight);
+        $finalFile = $cacheDir . DIRECTORY_SEPARATOR . $cacheKey . '.mp4';
+
+        if (file_exists($finalFile) && filesize($finalFile) > 10240) {
+            if (time() - filemtime($finalFile) < 172800) {
+                return $finalFile;
+            }
+        }
+
+        $tempTemplate = $cacheDir . DIRECTORY_SEPARATOR . 'tmp_' . $cacheKey . '.%(ext)s';
+        $ffmpegArg = $ffmpeg ? ' --ffmpeg-location ' . self::escapeArg($ffmpeg) : '';
+        $formatArg = "bestvideo[height<={$maxHeight}]+bestaudio/best";
+        $cmd = 'python -m yt_dlp --js-runtimes node --no-warnings --no-playlist -f ' . self::escapeArg($formatArg)
+            . ' --merge-output-format mp4'
+            . $ffmpegArg
+            . ' -o ' . self::escapeArg($tempTemplate)
+            . ' ' . self::escapeArg($sourceUrl) . ' 2>&1';
+
+        $output = @shell_exec($cmd);
+        $tempMp4 = $cacheDir . DIRECTORY_SEPARATOR . 'tmp_' . $cacheKey . '.mp4';
+
+        if (file_exists($tempMp4) && filesize($tempMp4) > 10240) {
+            @rename($tempMp4, $finalFile);
+            return $finalFile;
+        }
+
         return null;
     }
 
@@ -183,14 +278,14 @@ class MediaCompressor
 
         // 1. High-speed local temp download (drastically faster than FFmpeg's HTTP client)
         $isRemote = str_starts_with($videoUrl, 'http://') || str_starts_with($videoUrl, 'https://');
-        $localVideo = $isRemote ? self::downloadToTemp($videoUrl, 30) : $videoUrl;
+        $localVideo = $isRemote ? self::downloadToTemp($videoUrl, 35) : $videoUrl;
         if (!$localVideo || !file_exists($localVideo)) {
             $localVideo = $videoUrl; // fallback
         }
 
         $localAudio = null;
         if (!empty($audioUrl) && (str_starts_with($audioUrl, 'http://') || str_starts_with($audioUrl, 'https://'))) {
-            $localAudio = self::downloadToTemp($audioUrl, 20);
+            $localAudio = self::downloadToTemp($audioUrl, 25);
         }
 
         // 2. Hardware Acceleration or Ultrafast Multithread Codec
@@ -201,15 +296,15 @@ class MediaCompressor
             $codecParams = '-c:v libx264 -preset veryfast -crf ' . $crf . ' -threads 0 -pix_fmt yuv420p';
         }
 
-        $cmd = escapeshellarg($ffmpeg) . ' -y -v error ';
+        $cmd = self::escapeArg($ffmpeg) . ' -y -v error ';
         if ($localVideo === $videoUrl) {
-            $ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124.0.0.0';
-            $cmd .= '-user_agent ' . escapeshellarg($ua) . ' ';
+            $ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+            $cmd .= '-user_agent ' . self::escapeArg($ua) . ' ';
         }
-        $cmd .= '-i ' . escapeshellarg($localVideo) . ' ';
+        $cmd .= '-i ' . self::escapeArg($localVideo) . ' ';
 
         if (!empty($localAudio)) {
-            $cmd .= '-i ' . escapeshellarg($localAudio) . ' ';
+            $cmd .= '-i ' . self::escapeArg($localAudio) . ' ';
             $cmd .= '-map 0:v:0 -map 1:a:0? ' . $codecParams . ' ';
             $cmd .= '-vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:a aac -b:a 128k -ar 44100 -shortest ';
         } else {
@@ -217,7 +312,7 @@ class MediaCompressor
             $cmd .= '-vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:a aac -b:a 128k -ar 44100 ';
         }
 
-        $cmd .= '-movflags +faststart ' . escapeshellarg($tempFile);
+        $cmd .= '-movflags +faststart ' . self::escapeArg($tempFile);
 
         $descriptors = [
             0 => ['pipe', 'r'],
@@ -261,7 +356,7 @@ class MediaCompressor
     }
 
     /**
-     * Compress audio to MP3 128kbps HQ
+     * Compress audio to MP3 HQ
      */
     public static function compressAudio(string $audioUrl, array $options = []): ?string
     {
@@ -270,7 +365,7 @@ class MediaCompressor
             return null;
         }
 
-        $bitrate = (string)($options['bitrate'] ?? '128k');
+        $bitrate = (string)($options['bitrate'] ?? '320k');
         $cacheKey = md5($audioUrl . '_audio_' . $bitrate);
         $finalFile = self::getCacheDir() . DIRECTORY_SEPARATOR . $cacheKey . '.mp3';
         $tempFile = self::getCacheDir() . DIRECTORY_SEPARATOR . 'tmp_aud_' . $cacheKey . '_' . uniqid() . '.mp3';
@@ -281,9 +376,19 @@ class MediaCompressor
             }
         }
 
-        $ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124.0.0.0';
-        $cmd = escapeshellarg($ffmpeg) . ' -y -v error -user_agent ' . escapeshellarg($ua) . ' -i ' . escapeshellarg($audioUrl) . ' ';
-        $cmd .= '-vn -c:a libmp3lame -b:a ' . $bitrate . ' -ar 44100 ' . escapeshellarg($tempFile);
+        $isRemote = str_starts_with($audioUrl, 'http://') || str_starts_with($audioUrl, 'https://');
+        $localAudio = $isRemote ? self::downloadToTemp($audioUrl, 25) : $audioUrl;
+        if (!$localAudio || !file_exists($localAudio)) {
+            $localAudio = $audioUrl;
+        }
+
+        $cmd = self::escapeArg($ffmpeg) . ' -y -v error ';
+        if ($localAudio === $audioUrl) {
+            $ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+            $cmd .= '-user_agent ' . self::escapeArg($ua) . ' ';
+        }
+        $cmd .= '-i ' . self::escapeArg($localAudio) . ' ';
+        $cmd .= '-vn -c:a libmp3lame -b:a ' . $bitrate . ' -ar 44100 ' . self::escapeArg($tempFile);
 
         $descriptors = [
             0 => ['pipe', 'r'],
@@ -293,6 +398,7 @@ class MediaCompressor
 
         $process = proc_open($cmd, $descriptors, $pipes);
         if (!is_resource($process)) {
+            if ($isRemote && $localAudio !== $audioUrl) @unlink($localAudio);
             return null;
         }
 
@@ -303,6 +409,10 @@ class MediaCompressor
         fclose($pipes[2]);
 
         $exitCode = proc_close($process);
+
+        if ($isRemote && $localAudio !== $audioUrl) {
+            @unlink($localAudio);
+        }
 
         if ($exitCode === 0 && file_exists($tempFile) && filesize($tempFile) > 5000) {
             @rename($tempFile, $finalFile);

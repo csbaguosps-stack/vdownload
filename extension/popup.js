@@ -91,10 +91,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         : detectPlatformFallback(activeTabUrl);
 
       if (platform) {
-        detectedPlatformBadge.textContent = platform.toUpperCase();
+        detectedPlatformBadge.textContent = platform === 'ytmusic' ? 'YT MUSIC' : platform.toUpperCase();
         detectedPlatformBadge.className = `platform-badge ${platform}`;
         btnDownloadActiveTab.disabled = false;
-        btnDownloadActiveLabel.textContent = `Unduh Media di Tab Ini (${platform.toUpperCase()})`;
+        btnDownloadActiveLabel.textContent = `Unduh Media di Tab Ini (${platform === 'ytmusic' ? 'YT MUSIC' : platform.toUpperCase()})`;
       } else {
         detectedPlatformBadge.textContent = 'BUKAN MEDIA';
         detectedPlatformBadge.className = 'platform-badge';
@@ -303,6 +303,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           if (item.audio_url) {
             proxyUrl += `&audio_url=${encodeURIComponent(item.audio_url)}`;
           }
+          if (item.source_url) {
+            proxyUrl += `&source_url=${encodeURIComponent(item.source_url)}`;
+          }
           downloadTargetUrl = proxyUrl;
         }
         triggerDirectDownload(downloadTargetUrl, item.filename, btn);
@@ -451,6 +454,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   function detectPlatformFallback(url) {
     if (!url) return null;
     const u = url.toLowerCase();
+    if (u.includes('music.youtube.com')) return 'ytmusic';
     if (u.includes('youtube.com') || u.includes('youtu.be')) return 'youtube';
     if (u.includes('tiktok.com') || u.includes('douyin.com') || u.includes('vt.tiktok')) return 'tiktok';
     if (u.includes('instagram.com') || u.includes('instagr.am')) return 'instagram';

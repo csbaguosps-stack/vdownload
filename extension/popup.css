@@ -273,6 +273,12 @@ body {
   border: 1px solid #fca5a5;
 }
 
+.platform-badge.ytmusic {
+  background: #ffe4e6;
+  color: #e11d48;
+  border: 1px solid #fda4af;
+}
+
 .platform-badge.instagram {
   background: #ffe4e6;
   color: #e11d48;

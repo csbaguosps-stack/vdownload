@@ -44,7 +44,10 @@ $baseUrl = Config::getBaseUrl();
                             <i class="bi bi-grid-fill me-1"></i> Semua Platform
                         </button>
                         <button class="btn btn-sm btn-platform-tab" data-platform="youtube">
-                            <i class="bi bi-youtube me-1 text-danger"></i> YouTube Video & Musik
+                            <i class="bi bi-youtube me-1 text-danger"></i> YouTube Video
+                        </button>
+                        <button class="btn btn-sm btn-platform-tab" data-platform="ytmusic">
+                            <i class="bi bi-music-note-beamed me-1 text-danger"></i> YT Music
                         </button>
                         <button class="btn btn-sm btn-platform-tab" data-platform="tiktok">
                             <i class="bi bi-tiktok me-1 text-info"></i> TikTok (Video & Foto)
@@ -72,7 +75,7 @@ $baseUrl = Config::getBaseUrl();
                                 type="url" 
                                 class="form-control search-input shadow-none" 
                                 id="videoUrlInput" 
-                                placeholder="Tempel tautan video atau foto Instagram, TikTok, Shopee, YouTube di sini..." 
+                                placeholder="Tempel tautan video atau musik YouTube Music, TikTok, Shopee, IG..." 
                                 autocomplete="off"
                                 required
                             >
@@ -102,12 +105,16 @@ $baseUrl = Config::getBaseUrl();
                 <div class="d-flex flex-wrap align-items-center justify-content-center gap-2 mt-3 text-secondary small example-links-bar">
                     <span class="opacity-75"><i class="bi bi-lightning-charge-fill text-warning me-1"></i>Coba Contoh:</span>
                     <button type="button" class="btn btn-sample-chip text-danger sample-link" 
+                        data-url="https://music.youtube.com/watch?v=sMliuHA4T6I">
+                        <i class="bi bi-music-note-beamed me-1"></i>YT Music: 4L Square
+                    </button>
+                    <button type="button" class="btn btn-sample-chip text-danger sample-link" 
                         data-url="https://www.youtube.com/watch?v=dQw4w9WgXcQ">
-                        <i class="bi bi-youtube me-1"></i>YouTube Musik Video
+                        <i class="bi bi-youtube me-1"></i>YouTube Video
                     </button>
                     <button type="button" class="btn btn-sample-chip text-shopee-accent sample-link" 
                         data-url="https://sv.shopee.co.id/share-video/NQJLGKAjCgBWcSEFAAAAAA==?af_cost_value=h5_video_page&c=share_web">
-                        <i class="bi bi-bag-check-fill me-1"></i>Shopee Video Kacamata
+                        <i class="bi bi-bag-check-fill me-1"></i>Shopee Video
                     </button>
                     <button type="button" class="btn btn-sample-chip text-info sample-link" 
                         data-url="https://www.tiktok.com/@scout2015/video/6718335390845095173">
