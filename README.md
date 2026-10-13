@@ -1,7 +1,7 @@
 # 🚀 VDownload Pro - Multi-Platform Video, Photo & Music Downloader
 
-[![Version](https://img.shields.io/badge/Version-v2.2.0-0284c7?style=for-the-badge&logo=git&logoColor=white)](https://github.com/csbaguosps-stack/vdownload)
-[![Extension](https://img.shields.io/badge/Extension-v1.4.0-10b981?style=for-the-badge&logo=googlechrome&logoColor=white)](extension/)
+[![Version](https://img.shields.io/badge/Version-v2.3.0-0284c7?style=for-the-badge&logo=git&logoColor=white)](https://github.com/csbaguosps-stack/vdownload)
+[![Extension](https://img.shields.io/badge/Extension-v1.5.0-10b981?style=for-the-badge&logo=googlechrome&logoColor=white)](extension/)
 [![PHP Version](https://img.shields.io/badge/PHP-8.2%2B-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net/)
 [![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white)](https://getbootstrap.com/)
 [![License](https://img.shields.io/badge/License-Proprietary-0284c7?style=for-the-badge)](mailto:cs.baguosps@gmail.com)
@@ -11,21 +11,25 @@
   <img src="assets/img/preview.png" alt="VDownload Pro Preview" width="100%">
 </p>
 
-**VDownload Pro** adalah aplikasi web dan ekstensi browser modern untuk mengunduh video, foto/gambar, dan audio musik dari **YouTube**, **YouTube Music**, **TikTok**, **Instagram (Reels & Album Foto)**, dan **Shopee Video** tanpa tanda air (*no watermark*) dengan kualitas **Full HD Asli (1080p / 720p)**, audio MP3 320kbps, pratinjau galeri carousel interaktif, serta paket unduhan berkas ZIP instan.
+**VDownload Pro** adalah aplikasi web dan ekstensi browser modern untuk mengunduh video, foto/gambar, dan audio musik dari **YouTube**, **YouTube Music**, **TikTok**, **Instagram (Reels & Album Foto)**, dan **Shopee Video** tanpa tanda air (*no watermark*) dengan pilihan resolusi lengkap **1080p Full HD**, **720p HD**, dan **360p SD Hemat Kuota**, audio MP3 320kbps, pratinjau galeri carousel interaktif, serta paket unduhan berkas ZIP instan.
 
-Dilengkapi dengan mesin **Kompresi Cerdas Berakselerasi GPU NVIDIA (NVENC)** agar berkas video hemat kuota hingga ~60% **tanpa mengurangi ketajaman video (anti-pecah)**, serta memiliki **Ekstensi Browser Standalone (v1.4.0)** resmi untuk kemudahan unduh 1-klik langsung di halaman web peramban Anda.
+Dilengkapi dengan mesin **Kompresi Cerdas Berakselerasi GPU NVIDIA (NVENC)** agar berkas video hemat kuota hingga ~60% **tanpa mengurangi ketajaman video (anti-pecah)**, serta memiliki **Ekstensi Browser Standalone (v1.5.0)** resmi untuk kemudahan unduh 1-klik langsung di halaman web peramban Anda.
 
 ---
 
-## 🆕 Catatan Rilis Versi 2.2.0 (Changelog)
+## 🆕 Catatan Rilis Versi 2.3.0 (Changelog)
 
-* **🎧 Ekstraksi & Unduh YouTube Music Penuh (`music.youtube.com`) (Baru)**:
-  * Otomatis mendeteksi tautan lagu, album, dan playlist **YouTube Music** (`music.youtube.com/watch?v=...`).
-  * **Audio Musik MP3 320kbps HQ**: Konversi otomatis instan kualitas audio studio 320k dengan metadata judul lagu, artis, dan album lengkap.
-  * **Audio Asli M4A / AAC**: Pilihan unduhan format native M4A tanpa kompresi ulang untuk perangkat Apple & Android.
-  * **Video Musik Full HD (1080p / 720p)**: Penggabungan video dan audio otomatis dengan FFmpeg sehingga hasil unduhan 100% bersuara jernih.
-  * **Cover Album HD**: Unduh artwork cover album beresolusi penuh dalam 1 klik.
-  * Dukungan navigasi Single Page Application (SPA) YouTube Music di ekstensi browser.
+* **🎬 Dukungan Pilihan Resolusi Lengkap: 1080p, 720p, & 360p (Baru)**:
+  * **⭐ 1080p Full HD**: Kualitas visual tertinggi (*pristine clarity*) dengan audio jernih tanpa kompresi berlebih untuk layar TV dan laptop.
+  * **HD 720p**: Keseimbangan sempurna antara kejernihan gambar dan ukuran berkas yang efisien.
+  * **⚡ SD 360p (Hemat Kuota)**: Pilihan ekstra ringan khusus untuk smartphone hemat kuota dan koneksi seluler tanpa buffering.
+  * **Berlaku di Semua Platform**: YouTube, YouTube Music, TikTok, Instagram Reels, Shopee Video, dan Ekstensi Browser Standalone.
+* **⚡ Mesin Penskalaan Cerdas Aspek Rasio (Aspect Ratio Scaling Engine)**:
+  * Mendukung penskalaan otomatis baik untuk video lanskap (16:9) maupun video vertikal potret (9:16) secara presisi tanpa memotong bingkai (*no cropping*).
+* **🎧 Integrasi Penuh YouTube Music (`music.youtube.com`)**:
+  * Pilihan unduhan MP3 320k Studio, M4A native, video 1080p, 720p, 360p, dan Artwork Cover Album HD.
+* **🧩 Pembaruan Ekstensi Browser ke v1.5.0**:
+  * Opsi tombol unduhan 1080p, 720p, dan 360p terintegrasi langsung di popup ekstensi.
 * **📸 Unduh Foto & Carousel Instagram**:
   * Mendukung unduhan foto tunggal dan album carousel multi-foto Instagram beresolusi penuh (1080p).
   * Opsi tombol instan: **Unduh Semua Foto Sekaligus (.ZIP)** untuk kemudahan mengunduh seluruh album dalam 1 klik.
@@ -107,7 +111,7 @@ Dilengkapi dengan mesin **Kompresi Cerdas Berakselerasi GPU NVIDIA (NVENC)** aga
 
 ---
 
-### 3. 🧩 Ekstensi Browser Standalone (v1.4.0)
+### 3. 🧩 Ekstensi Browser Standalone (v1.5.0)
 * Terletak di direktori `extension/` berbasis **Manifest V3**.
 * **100% Mandiri (Standalone)**: Dapat langsung mengunduh video & foto dari peramban tanpa perlu server lokal aktif.
 * **Dukungan CORS Penuh**: Sinkronisasi instan dengan server VDownload lokal dengan izin preflight HTTP `OPTIONS`.

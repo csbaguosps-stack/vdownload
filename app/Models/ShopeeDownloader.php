@@ -87,12 +87,30 @@ class ShopeeDownloader implements DownloaderInterface
                 'downloads' => [
                     [
                         'type' => 'video',
-                        'label' => 'Unduh Shopee Video (MP4)',
-                        'quality' => 'Original MP4',
+                        'label' => 'Unduh Video Full HD 1080p - Tanpa Watermark',
+                        'quality' => '⭐ 1080p Full HD',
+                        'icon' => 'bi-badge-hd-fill',
+                        'btn_class' => 'btn-shopee',
+                        'url' => $videoUrl,
+                        'filename' => 'shopee_video_' . substr(md5($videoUrl), 0, 8) . '_1080p.mp4'
+                    ],
+                    [
+                        'type' => 'video',
+                        'label' => 'Unduh Video HD 720p - Kualitas Seimbang',
+                        'quality' => 'HD 720p',
                         'icon' => 'bi-play-circle-fill',
                         'btn_class' => 'btn-shopee',
                         'url' => $videoUrl,
-                        'filename' => 'shopee_video_' . substr(md5($videoUrl), 0, 8) . '.mp4'
+                        'filename' => 'shopee_video_' . substr(md5($videoUrl), 0, 8) . '_720p.mp4'
+                    ],
+                    [
+                        'type' => 'video',
+                        'label' => 'Unduh Video Hemat Kuota SD 360p - Ekstra Ringan',
+                        'quality' => 'SD 360p (Hemat Kuota)',
+                        'icon' => 'bi-lightning-charge-fill',
+                        'btn_class' => 'btn-download-sd',
+                        'url' => $videoUrl,
+                        'filename' => 'shopee_video_' . substr(md5($videoUrl), 0, 8) . '_360p.mp4'
                     ]
                 ]
             ];
@@ -137,37 +155,53 @@ class ShopeeDownloader implements DownloaderInterface
 
         $downloads = [];
 
-        // 1. TOP PRIORITY: True Master HD (Highest Resolution, Highest Bitrate, Tanpa Pecah)
-        if (!empty($master['url'])) {
-            $resBadge = !empty($master['resolution']) ? " ({$master['resolution']})" : ' (HD)';
+        // 1. Full HD 1080p No Watermark Video
+        $target1080 = $master['url'] ?? ($cleanDefault['url'] ?? $videoUrl);
+        if (!empty($target1080)) {
+            $resBadge = !empty($master['resolution']) ? " ({$master['resolution']})" : ' (Full HD)';
             $sizeBadge = !empty($master['size_formatted']) ? " • {$master['size_formatted']}" : '';
             $downloads[] = [
                 'type' => 'video',
-                'label' => "Unduh Video Full HD Asli{$resBadge} - Tanpa Watermark",
-                'quality' => '⭐ True Master HD' . $sizeBadge,
+                'label' => "Unduh Video Full HD 1080p{$resBadge} - Tanpa Watermark",
+                'quality' => '⭐ 1080p Full HD' . $sizeBadge,
                 'icon' => 'bi-badge-hd-fill',
                 'btn_class' => 'btn-shopee',
-                'url' => $master['url'],
+                'url' => $target1080,
                 'size_bytes' => (int)($master['size'] ?? 0),
                 'size_formatted' => (string)($master['size_formatted'] ?? ''),
-                'filename' => "shopee_{$author}_{$cleanId}_MasterHD_nowm.mp4"
+                'filename' => "shopee_{$author}_{$cleanId}_1080p_nowm.mp4"
             ];
         }
 
-        // 2. SECONDARY: Web SD/Compress (Fast Mobile Download)
-        if (!empty($cleanDefault['url'])) {
+        // 2. HD 720p No Watermark Video
+        $target720 = $cleanDefault['url'] ?? ($master['url'] ?? $videoUrl);
+        if (!empty($target720)) {
             $resBadge = !empty($cleanDefault['resolution']) ? " ({$cleanDefault['resolution']})" : '';
             $sizeBadge = !empty($cleanDefault['size_formatted']) ? " • {$cleanDefault['size_formatted']}" : '';
             $downloads[] = [
                 'type' => 'video',
-                'label' => "Unduh Video Format Hemat Kuota{$resBadge} - Tanpa Watermark",
-                'quality' => 'Web SD' . $sizeBadge,
-                'icon' => 'bi-lightning-charge-fill',
-                'btn_class' => 'btn-download-sd',
-                'url' => $cleanDefault['url'],
+                'label' => "Unduh Video HD 720p - Tanpa Watermark (Seimbang)",
+                'quality' => 'HD 720p' . $sizeBadge,
+                'icon' => 'bi-play-circle-fill',
+                'btn_class' => 'btn-shopee',
+                'url' => $target720,
                 'size_bytes' => (int)($cleanDefault['size'] ?? 0),
                 'size_formatted' => (string)($cleanDefault['size_formatted'] ?? ''),
-                'filename' => "shopee_{$author}_{$cleanId}_SD_nowm.mp4"
+                'filename' => "shopee_{$author}_{$cleanId}_720p_nowm.mp4"
+            ];
+        }
+
+        // 3. SD 360p No Watermark Video (Hemat Kuota)
+        $target360 = $cleanDefault['url'] ?? ($master['url'] ?? $videoUrl);
+        if (!empty($target360)) {
+            $downloads[] = [
+                'type' => 'video',
+                'label' => "Unduh Video Hemat Kuota SD 360p - Tanpa Watermark (Ekstra Ringan)",
+                'quality' => 'SD 360p (Hemat Kuota)',
+                'icon' => 'bi-lightning-charge-fill',
+                'btn_class' => 'btn-download-sd',
+                'url' => $target360,
+                'filename' => "shopee_{$author}_{$cleanId}_360p_nowm.mp4"
             ];
         }
 

@@ -247,6 +247,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else if (item.type === 'image') {
         typeClass = 'image';
         icon = '🖼️';
+      } else if (item.quality && (item.quality.includes('360p') || item.quality.includes('SD') || item.quality.includes('Hemat'))) {
+        typeClass = 'sd';
+        icon = '⚡';
+      } else if (item.quality && item.quality.includes('720p')) {
+        typeClass = 'sd';
+        icon = '🎬';
+      } else if (item.quality && (item.quality.includes('1080p') || item.quality.includes('Full HD') || item.quality.includes('Master'))) {
+        typeClass = 'hd';
+        icon = '⭐';
       } else if (index > 0) {
         typeClass = 'sd';
         icon = '🎬';

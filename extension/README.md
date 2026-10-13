@@ -12,7 +12,7 @@ Developed by: **cs.baguosps@gmail.com**
 
 1. **⚡ Standalone Direct Downloader (100% Berdiri Sendiri)**:
    - Mengekstrak dan mengunduh video & musik YouTube, YouTube Music, TikTok, Shopee Video, dan Instagram langsung di browser.
-   - Pilihan resolusi lengkap: Audio MP3 320k Studio Quality, Video 1080p Full HD, HD 720p, SD hemat kuota, musik M4A, serta cover album artwork resolusi penuh.
+   - Pilihan resolusi lengkap: Video 1080p Full HD, HD 720p, SD 360p (Hemat Kuota), Audio MP3 320k Studio Quality, musik M4A, serta cover album artwork resolusi penuh.
    - File langsung diunduh ke folder Downloads komputer via API Chrome Downloads!
 
 2. **🎯 Deteksi Tab Aktif Otomatis**:

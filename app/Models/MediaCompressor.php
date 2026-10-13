@@ -218,7 +218,7 @@ class MediaCompressor
     }
 
     /**
-     * Merge YouTube / YouTube Music video and audio streams into single Full HD MP4 with audio
+     * Merge YouTube / YouTube Music video and audio streams into single MP4 with audio (1080p, 720p, 360p)
      */
     public static function mergeYtVideo(string $sourceUrl, string $maxHeight = '1080'): ?string
     {
@@ -235,9 +235,9 @@ class MediaCompressor
 
         $tempTemplate = $cacheDir . DIRECTORY_SEPARATOR . 'tmp_' . $cacheKey . '.%(ext)s';
         $ffmpegArg = $ffmpeg ? ' --ffmpeg-location ' . self::escapeArg($ffmpeg) : '';
-        $formatArg = "bestvideo[height<={$maxHeight}]+bestaudio/best";
+        $formatArg = "bestvideo[height<={$maxHeight}]+bestaudio/best[height<={$maxHeight}]/best";
         $cmd = 'python -m yt_dlp --js-runtimes node --no-warnings --no-playlist -f ' . self::escapeArg($formatArg)
-            . ' --merge-output-format mp4'
+            . ' --merge-output-format mp4 --remux-video mp4'
             . $ffmpegArg
             . ' -o ' . self::escapeArg($tempTemplate)
             . ' ' . self::escapeArg($sourceUrl) . ' 2>&1';
@@ -248,6 +248,27 @@ class MediaCompressor
         if (file_exists($tempMp4) && filesize($tempMp4) > 10240) {
             @rename($tempMp4, $finalFile);
             return $finalFile;
+        }
+
+        // Check if any matching tmp file was created
+        $matches = glob($cacheDir . DIRECTORY_SEPARATOR . 'tmp_' . $cacheKey . '.*');
+        if (!empty($matches)) {
+            foreach ($matches as $match) {
+                if (file_exists($match) && filesize($match) > 10240) {
+                    if (str_ends_with(strtolower($match), '.mp4')) {
+                        @rename($match, $finalFile);
+                        return $finalFile;
+                    }
+                    if ($ffmpeg) {
+                        $remuxCmd = self::escapeArg($ffmpeg) . ' -y -i ' . self::escapeArg($match) . ' -c copy -movflags +faststart ' . self::escapeArg($finalFile);
+                        @shell_exec($remuxCmd);
+                        @unlink($match);
+                        if (file_exists($finalFile) && filesize($finalFile) > 10240) {
+                            return $finalFile;
+                        }
+                    }
+                }
+            }
         }
 
         return null;
@@ -265,7 +286,8 @@ class MediaCompressor
         }
 
         $crf = (int)($options['crf'] ?? self::getCrf());
-        $cacheKey = md5($videoUrl . ($audioUrl ?? '') . '_crf' . $crf);
+        $height = (int)($options['height'] ?? 0);
+        $cacheKey = md5($videoUrl . ($audioUrl ?? '') . '_crf' . $crf . ($height ? '_h' . $height : ''));
         $finalFile = self::getCacheDir() . DIRECTORY_SEPARATOR . $cacheKey . '.mp4';
         $tempFile = self::getCacheDir() . DIRECTORY_SEPARATOR . 'tmp_' . $cacheKey . '_' . uniqid() . '.mp4';
 
@@ -296,6 +318,10 @@ class MediaCompressor
             $codecParams = '-c:v libx264 -preset veryfast -crf ' . $crf . ' -threads 0 -pix_fmt yuv420p';
         }
 
+        $scaleFilter = ($height > 0)
+            ? 'scale=\'if(gt(ih,iw),min(iw,' . $height . '),-2)\':\'if(gt(ih,iw),-2,min(ih,' . $height . '))\',scale=trunc(iw/2)*2:trunc(ih/2)*2'
+            : 'scale=trunc(iw/2)*2:trunc(ih/2)*2';
+
         $cmd = self::escapeArg($ffmpeg) . ' -y -v error ';
         if ($localVideo === $videoUrl) {
             $ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
@@ -306,10 +332,10 @@ class MediaCompressor
         if (!empty($localAudio)) {
             $cmd .= '-i ' . self::escapeArg($localAudio) . ' ';
             $cmd .= '-map 0:v:0 -map 1:a:0? ' . $codecParams . ' ';
-            $cmd .= '-vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:a aac -b:a 128k -ar 44100 -shortest ';
+            $cmd .= '-vf "' . $scaleFilter . '" -c:a aac -b:a 128k -ar 44100 -shortest ';
         } else {
             $cmd .= $codecParams . ' ';
-            $cmd .= '-vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:a aac -b:a 128k -ar 44100 ';
+            $cmd .= '-vf "' . $scaleFilter . '" -c:a aac -b:a 128k -ar 44100 ';
         }
 
         $cmd .= '-movflags +faststart ' . self::escapeArg($tempFile);
@@ -443,9 +469,10 @@ class MediaCompressor
     public static function getCachedFilePath(string $url, string $type = 'video', ?string $audioUrl = null, array $options = []): ?string
     {
         $crf = (int)($options['crf'] ?? self::getCrf());
+        $height = (int)($options['height'] ?? 0);
         $cacheKey = $type === 'audio' 
             ? md5($url . '_audio_' . ($options['bitrate'] ?? '128k'))
-            : md5($url . ($audioUrl ?? '') . '_crf' . $crf);
+            : md5($url . ($audioUrl ?? '') . '_crf' . $crf . ($height ? '_h' . $height : ''));
         
         $ext = $type === 'audio' ? '.mp3' : '.mp4';
         $finalFile = self::getCacheDir() . DIRECTORY_SEPARATOR . $cacheKey . $ext;

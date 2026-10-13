@@ -114,7 +114,7 @@ class YouTubeDownloader implements DownloaderInterface
         // 1. Find Best Streams
         $f1080 = null;
         $f720 = null;
-        $fSD = null;
+        $f360 = null;
         $bestAudio = null;
         $bestM4a = null;
         $bestProgressive = null;
@@ -123,6 +123,8 @@ class YouTubeDownloader implements DownloaderInterface
             $vcodec = $f['vcodec'] ?? 'none';
             $acodec = $f['acodec'] ?? 'none';
             $height = (int)($f['height'] ?? 0);
+            $width = (int)($f['width'] ?? 0);
+            $effectiveH = ($height > 0) ? $height : (int)round($width * 9 / 16);
             $ext = $f['ext'] ?? 'mp4';
             $urlStream = $f['url'] ?? '';
 
@@ -130,21 +132,21 @@ class YouTubeDownloader implements DownloaderInterface
 
             // Progressive (both audio and video in single stream)
             if ($vcodec !== 'none' && $acodec !== 'none') {
-                if ($height >= 720 && (!$bestProgressive || $height > ($bestProgressive['height'] ?? 0))) {
+                if ($effectiveH >= 720 && (!$bestProgressive || $effectiveH > ($bestProgressive['height'] ?? 0))) {
                     $bestProgressive = $f;
-                } elseif ($height >= 360 && !$fSD) {
-                    $fSD = $f;
+                } elseif ($effectiveH >= 360 && !$f360) {
+                    $f360 = $f;
                 }
             }
 
             // Video streams
             if ($vcodec !== 'none') {
-                if ($height >= 1080 && (!$f1080 || $ext === 'mp4')) {
+                if ($effectiveH >= 1080 && (!$f1080 || $ext === 'mp4')) {
                     $f1080 = $f;
-                } elseif ($height === 720 && (!$f720 || $ext === 'mp4')) {
+                } elseif ($effectiveH >= 720 && $effectiveH < 1080 && (!$f720 || $ext === 'mp4')) {
                     $f720 = $f;
-                } elseif ($height <= 480 && $height >= 360 && (!$fSD || $ext === 'mp4')) {
-                    $fSD = $f;
+                } elseif ($effectiveH >= 360 && $effectiveH <= 480 && (!$f360 || $ext === 'mp4')) {
+                    $f360 = $f;
                 }
             }
 
@@ -200,8 +202,9 @@ class YouTubeDownloader implements DownloaderInterface
             }
 
             // Primary 3: Full HD 1080p Music Video with Audio
-            if ($f1080) {
-                $sz1080 = (int)($f1080['filesize'] ?? ($f1080['filesize_approx'] ?? 0));
+            $target1080 = $f1080 ?: ($f720 ?: $bestProgressive);
+            if ($target1080) {
+                $sz1080 = (int)($target1080['filesize'] ?? ($target1080['filesize_approx'] ?? 0));
                 $sz1080Formatted = $sz1080 > 0 ? round($sz1080 / (1024 * 1024), 1) . ' MB' : '';
                 $downloads[] = [
                     'type' => 'video',
@@ -209,7 +212,7 @@ class YouTubeDownloader implements DownloaderInterface
                     'quality' => '⭐ 1080p Full HD' . ($sz1080Formatted ? " • {$sz1080Formatted}" : ''),
                     'icon' => 'bi-badge-hd-fill',
                     'btn_class' => 'btn-youtube-hd',
-                    'url' => $f1080['url'],
+                    'url' => $target1080['url'],
                     'audio_url' => $bestAudio ? $bestAudio['url'] : null,
                     'source_url' => $url,
                     'size_bytes' => $sz1080,
@@ -219,19 +222,18 @@ class YouTubeDownloader implements DownloaderInterface
             }
 
             // Primary 4: HD 720p Music Video
-            if ($f720 || $bestProgressive) {
-                $target720 = $bestProgressive ?: $f720;
-                $hasAudio = isset($target720['acodec']) && $target720['acodec'] !== 'none';
+            $target720 = $bestProgressive ?: ($f720 ?: ($f1080 ?: $f360));
+            if ($target720) {
                 $sz720 = (int)($target720['filesize'] ?? ($target720['filesize_approx'] ?? 0));
                 $sz720Formatted = $sz720 > 0 ? round($sz720 / (1024 * 1024), 1) . ' MB' : '';
                 $downloads[] = [
                     'type' => 'video',
-                    'label' => 'Unduh Video Musik HD 720p (MP4 Cerdas)',
+                    'label' => 'Unduh Video Musik HD 720p (MP4 Cerdas + Audio)',
                     'quality' => 'HD 720p' . ($sz720Formatted ? " • {$sz720Formatted}" : ''),
                     'icon' => 'bi-play-circle-fill',
                     'btn_class' => 'btn-youtube',
                     'url' => $target720['url'],
-                    'audio_url' => (!$hasAudio && $bestAudio) ? $bestAudio['url'] : null,
+                    'audio_url' => $bestAudio ? $bestAudio['url'] : null,
                     'source_url' => $url,
                     'size_bytes' => $sz720,
                     'size_formatted' => $sz720Formatted,
@@ -239,7 +241,27 @@ class YouTubeDownloader implements DownloaderInterface
                 ];
             }
 
-            // Primary 5: Album Art / Cover HD
+            // Primary 5: SD 360p Music Video (Hemat Kuota)
+            $target360 = $f360 ?: ($bestProgressive ?: ($f720 ?: $f1080));
+            if ($target360) {
+                $sz360 = (int)($target360['filesize'] ?? ($target360['filesize_approx'] ?? 0));
+                $sz360Formatted = $sz360 > 0 ? round($sz360 / (1024 * 1024), 1) . ' MB' : '';
+                $downloads[] = [
+                    'type' => 'video',
+                    'label' => 'Unduh Video Musik SD 360p (MP4 Hemat Kuota + Audio)',
+                    'quality' => 'SD 360p (Hemat Kuota)' . ($sz360Formatted ? " • {$sz360Formatted}" : ''),
+                    'icon' => 'bi-lightning-charge-fill',
+                    'btn_class' => 'btn-download-sd',
+                    'url' => $target360['url'],
+                    'audio_url' => $bestAudio ? $bestAudio['url'] : null,
+                    'source_url' => $url,
+                    'size_bytes' => $sz360,
+                    'size_formatted' => $sz360Formatted,
+                    'filename' => "{$filePrefix}_{$cleanAuthor}_{$cleanTitle}_360p.mp4"
+                ];
+            }
+
+            // Primary 6: Album Art / Cover HD
             if (!empty($thumbnail)) {
                 $downloads[] = [
                     'type' => 'image',
@@ -254,16 +276,17 @@ class YouTubeDownloader implements DownloaderInterface
         } else {
             // === REGULAR YOUTUBE VIDEO DOWNLOAD OPTIONS ===
             // Option 1: Full HD 1080p
-            if ($f1080) {
-                $sz1080 = (int)($f1080['filesize'] ?? ($f1080['filesize_approx'] ?? 0));
+            $target1080 = $f1080 ?: ($f720 ?: $bestProgressive);
+            if ($target1080) {
+                $sz1080 = (int)($target1080['filesize'] ?? ($target1080['filesize_approx'] ?? 0));
                 $sz1080Formatted = $sz1080 > 0 ? round($sz1080 / (1024 * 1024), 1) . ' MB' : '';
                 $downloads[] = [
                     'type' => 'video',
-                    'label' => 'Unduh Video Full HD 1080p (MP4 - Kompres Otomatis Jernih)',
+                    'label' => 'Unduh Video Full HD 1080p (MP4 Jernih + Audio)',
                     'quality' => '⭐ 1080p Full HD' . ($sz1080Formatted ? " • {$sz1080Formatted}" : ''),
                     'icon' => 'bi-badge-hd-fill',
                     'btn_class' => 'btn-youtube-hd',
-                    'url' => $f1080['url'],
+                    'url' => $target1080['url'],
                     'audio_url' => $bestAudio ? $bestAudio['url'] : null,
                     'source_url' => $url,
                     'size_bytes' => $sz1080,
@@ -273,19 +296,18 @@ class YouTubeDownloader implements DownloaderInterface
             }
 
             // Option 2: HD 720p
-            if ($f720 || $bestProgressive) {
-                $target720 = $bestProgressive ?: $f720;
-                $hasAudio = isset($target720['acodec']) && $target720['acodec'] !== 'none';
+            $target720 = $bestProgressive ?: ($f720 ?: ($f1080 ?: $f360));
+            if ($target720) {
                 $sz720 = (int)($target720['filesize'] ?? ($target720['filesize_approx'] ?? 0));
                 $sz720Formatted = $sz720 > 0 ? round($sz720 / (1024 * 1024), 1) . ' MB' : '';
                 $downloads[] = [
                     'type' => 'video',
-                    'label' => 'Unduh Video HD 720p (MP4 - Kompres Cerdas)',
+                    'label' => 'Unduh Video HD 720p (MP4 Cerdas + Audio)',
                     'quality' => 'HD 720p' . ($sz720Formatted ? " • {$sz720Formatted}" : ''),
                     'icon' => 'bi-play-circle-fill',
                     'btn_class' => 'btn-youtube',
                     'url' => $target720['url'],
-                    'audio_url' => (!$hasAudio && $bestAudio) ? $bestAudio['url'] : null,
+                    'audio_url' => $bestAudio ? $bestAudio['url'] : null,
                     'source_url' => $url,
                     'size_bytes' => $sz720,
                     'size_formatted' => $sz720Formatted,
@@ -293,18 +315,23 @@ class YouTubeDownloader implements DownloaderInterface
                 ];
             }
 
-            // Option 3: Standard SD 360p / 480p
-            if ($fSD) {
+            // Option 3: Standard SD 360p
+            $target360 = $f360 ?: ($bestProgressive ?: ($f720 ?: $f1080));
+            if ($target360) {
+                $sz360 = (int)($target360['filesize'] ?? ($target360['filesize_approx'] ?? 0));
+                $sz360Formatted = $sz360 > 0 ? round($sz360 / (1024 * 1024), 1) . ' MB' : '';
                 $downloads[] = [
                     'type' => 'video',
-                    'label' => 'Unduh Video Format Hemat Kuota (SD 360p/480p)',
-                    'quality' => 'Web SD (Ekstra Ringan)',
+                    'label' => 'Unduh Video SD 360p (MP4 Hemat Kuota + Audio)',
+                    'quality' => 'SD 360p (Hemat Kuota)' . ($sz360Formatted ? " • {$sz360Formatted}" : ''),
                     'icon' => 'bi-lightning-charge-fill',
                     'btn_class' => 'btn-download-sd',
-                    'url' => $fSD['url'],
-                    'audio_url' => (isset($fSD['acodec']) && $fSD['acodec'] === 'none' && $bestAudio) ? $bestAudio['url'] : null,
+                    'url' => $target360['url'],
+                    'audio_url' => $bestAudio ? $bestAudio['url'] : null,
                     'source_url' => $url,
-                    'filename' => "youtube_{$cleanAuthor}_{$cleanId}_SD.mp4"
+                    'size_bytes' => $sz360,
+                    'size_formatted' => $sz360Formatted,
+                    'filename' => "youtube_{$cleanAuthor}_{$cleanId}_360p.mp4"
                 ];
             }
 

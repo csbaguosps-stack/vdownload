@@ -189,7 +189,7 @@ class DownloadController extends Controller
         $isHead = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'HEAD';
         $isYtSource = !empty($sourceUrl) && (str_contains($sourceUrl, 'youtube.com') || str_contains($sourceUrl, 'youtu.be'));
 
-        // 1. DEDICATED YOUTUBE / YT MUSIC CONVERSION & MERGING
+        // 1. DEDICATED YOUTUBE / YT MUSIC CONVERSION & MERGING (1080p, 720p, 360p, 320k MP3)
         if (!$forceRaw && $isYtSource && MediaCompressor::isAvailable()) {
             if ($type === 'audio' && str_ends_with(strtolower($fileName), '.mp3')) {
                 $targetFile = MediaCompressor::transcodeYtAudio($sourceUrl, '320k');
@@ -197,8 +197,15 @@ class DownloadController extends Controller
                     $this->streamLocalFile($targetFile, $fileName, 'audio/mpeg', $isHead);
                     exit;
                 }
-            } elseif ($type === 'video' && !empty($audioUrl)) {
-                $maxH = str_contains($fileName, '720p') ? '720' : '1080';
+            } elseif ($type === 'video') {
+                $maxH = '1080';
+                if (str_contains($fileName, '360p') || str_contains($fileName, '_SD')) {
+                    $maxH = '360';
+                } elseif (str_contains($fileName, '720p')) {
+                    $maxH = '720';
+                } elseif (str_contains($fileName, '1080p')) {
+                    $maxH = '1080';
+                }
                 $targetFile = MediaCompressor::mergeYtVideo($sourceUrl, $maxH);
                 if ($targetFile && file_exists($targetFile) && filesize($targetFile) > 1024) {
                     $this->streamLocalFile($targetFile, $fileName, 'video/mp4', $isHead);
@@ -207,12 +214,24 @@ class DownloadController extends Controller
             }
         }
 
-        // 2. FAST CACHED / EXPLICIT COMPRESSED DELIVERY
-        $shouldCompress = !$forceRaw && ($cachedParam || $compressParam === '1') && MediaCompressor::isAvailable() && in_array($type, ['video', 'audio'], true);
+        // 2. RESOLUTION SCALING & SMART COMPRESSION FOR ALL PLATFORMS (360p, 720p, 1080p)
+        $isSpecificRes = ($type === 'video') && (str_contains($fileName, '360p') || str_contains($fileName, '720p'));
+        $shouldCompress = !$forceRaw && ($cachedParam || $compressParam === '1' || $isSpecificRes) && MediaCompressor::isAvailable() && in_array($type, ['video', 'audio'], true);
 
         if ($shouldCompress) {
-            $cachedFile = MediaCompressor::getCachedFilePath($fileUrl, $type, $audioUrl);
-            $targetFile = $cachedFile ?: ($compressParam === '1' ? MediaCompressor::process($fileUrl, $type, $audioUrl) : null);
+            $options = [];
+            if (str_contains($fileName, '360p')) {
+                $options['height'] = 360;
+                $options['crf'] = 24;
+            } elseif (str_contains($fileName, '720p')) {
+                $options['height'] = 720;
+                $options['crf'] = 22;
+            }
+
+            $cachedFile = MediaCompressor::getCachedFilePath($fileUrl, $type, $audioUrl, $options);
+            $targetFile = $cachedFile ?: ($type === 'video' 
+                ? MediaCompressor::compressVideo($fileUrl, $audioUrl, $options) 
+                : MediaCompressor::process($fileUrl, $type, $audioUrl));
 
             if ($targetFile && file_exists($targetFile) && filesize($targetFile) > 1024) {
                 // Adjust file extension & mime

@@ -171,38 +171,52 @@ class TikTokDownloader implements DownloaderInterface
             $detectedRes = $sdInfo['resolution'];
         }
 
-        // HD No Watermark Video
+        // 1. Full HD 1080p No Watermark Video
         if (!empty($hdUrl)) {
             $resBadge = !empty($hdInfo['resolution']) ? " ({$hdInfo['resolution']})" : ' (Full HD)';
             $label = empty($images) 
-                ? "Unduh Video Full HD{$resBadge} - Tanpa Watermark (Kualitas Terbaik)"
-                : "Unduh Video Slideshow Full HD{$resBadge} (MP4)";
+                ? "Unduh Video Full HD 1080p{$resBadge} - Tanpa Watermark (Kualitas Terbaik)"
+                : "Unduh Video Slideshow Full HD 1080p{$resBadge} (MP4)";
             $downloads[] = [
                 'type' => 'video',
                 'label' => $label,
-                'quality' => '⭐ True HD' . $hdSizeLabel,
+                'quality' => '⭐ 1080p Full HD' . $hdSizeLabel,
                 'icon' => 'bi-stars',
                 'btn_class' => empty($images) ? 'btn-tiktok-hd' : 'btn-tiktok',
                 'url' => $hdUrl,
                 'size_bytes' => (int)($hdInfo['size'] ?? ($data['hd_size'] ?? 0)),
                 'size_formatted' => (string)($hdInfo['size_formatted'] ?? ''),
-                'filename' => "tiktok_{$author}_{$id}_HD_nowm.mp4"
+                'filename' => "tiktok_{$author}_{$id}_1080p_nowm.mp4"
             ];
         }
 
-        // Standard No Watermark Video (if not photo post, or as secondary option)
-        if (!empty($playUrl) && empty($images)) {
-            $resBadge = !empty($sdInfo['resolution']) ? " ({$sdInfo['resolution']})" : '';
+        // 2. HD 720p No Watermark Video
+        $target720 = !empty($playUrl) ? $playUrl : $hdUrl;
+        if (!empty($target720) && empty($images)) {
             $downloads[] = [
                 'type' => 'video',
-                'label' => "Unduh Video Standar{$resBadge} - Tanpa Watermark",
-                'quality' => 'Clean SD' . $sdSizeLabel,
-                'icon' => 'bi-play-circle',
+                'label' => "Unduh Video HD 720p - Tanpa Watermark (Kualitas Seimbang)",
+                'quality' => 'HD 720p' . $sdSizeLabel,
+                'icon' => 'bi-badge-hd',
                 'btn_class' => 'btn-tiktok',
-                'url' => $playUrl,
+                'url' => $target720,
                 'size_bytes' => (int)($sdInfo['size'] ?? ($data['size'] ?? 0)),
                 'size_formatted' => (string)($sdInfo['size_formatted'] ?? ''),
-                'filename' => "tiktok_{$author}_{$id}_SD_nowm.mp4"
+                'filename' => "tiktok_{$author}_{$id}_720p_nowm.mp4"
+            ];
+        }
+
+        // 3. SD 360p No Watermark Video (Hemat Kuota)
+        $target360 = !empty($playUrl) ? $playUrl : $hdUrl;
+        if (!empty($target360) && empty($images)) {
+            $downloads[] = [
+                'type' => 'video',
+                'label' => "Unduh Video Hemat Kuota SD 360p - Tanpa Watermark (Ekstra Ringan)",
+                'quality' => 'SD 360p (Hemat Kuota)',
+                'icon' => 'bi-lightning-charge-fill',
+                'btn_class' => 'btn-download-sd',
+                'url' => $target360,
+                'filename' => "tiktok_{$author}_{$id}_360p_nowm.mp4"
             ];
         }
 
@@ -353,12 +367,30 @@ class TikTokDownloader implements DownloaderInterface
         if (!empty($videoUrl)) {
             $downloads[] = [
                 'type' => 'video',
-                'label' => 'Unduh Video TikTok (MP4)',
-                'quality' => 'Direct MP4',
-                'icon' => 'bi-download',
+                'label' => 'Unduh Video Full HD 1080p (MP4 Jernih)',
+                'quality' => '⭐ 1080p Full HD',
+                'icon' => 'bi-stars',
+                'btn_class' => 'btn-tiktok-hd',
+                'url' => $videoUrl,
+                'filename' => "tiktok_{$id}_1080p.mp4"
+            ];
+            $downloads[] = [
+                'type' => 'video',
+                'label' => 'Unduh Video HD 720p (MP4 Seimbang)',
+                'quality' => 'HD 720p',
+                'icon' => 'bi-badge-hd',
                 'btn_class' => 'btn-tiktok',
                 'url' => $videoUrl,
-                'filename' => "tiktok_{$id}.mp4"
+                'filename' => "tiktok_{$id}_720p.mp4"
+            ];
+            $downloads[] = [
+                'type' => 'video',
+                'label' => 'Unduh Video SD 360p (MP4 Hemat Kuota)',
+                'quality' => 'SD 360p (Hemat Kuota)',
+                'icon' => 'bi-lightning-charge-fill',
+                'btn_class' => 'btn-download-sd',
+                'url' => $videoUrl,
+                'filename' => "tiktok_{$id}_360p.mp4"
             ];
         }
 

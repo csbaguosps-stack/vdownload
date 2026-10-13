@@ -78,31 +78,45 @@
       });
     }
 
-    // 2. True HD Video (No Watermark)
-    if (d.hdplay) {
-      const hdUrl = d.hdplay.startsWith('http') ? d.hdplay : `https://www.tikwm.com${d.hdplay}`;
+    // 2. Full HD 1080p Video (No Watermark)
+    if (d.hdplay || d.play) {
+      const hdUrl = d.hdplay ? (d.hdplay.startsWith('http') ? d.hdplay : `https://www.tikwm.com${d.hdplay}`) : (d.play.startsWith('http') ? d.play : `https://www.tikwm.com${d.play}`);
       downloads.push({
         type: 'video',
-        label: images.length > 0 ? 'Unduh Video Slideshow HD (MP4)' : 'Unduh True HD (Tanpa Watermark)',
-        quality: '⭐ True HD',
+        label: images.length > 0 ? 'Unduh Video Slideshow Full HD 1080p (MP4)' : 'Unduh Full HD 1080p (Tanpa Watermark)',
+        quality: '⭐ 1080p Full HD',
         icon: 'badge-hd',
         btnClass: images.length > 0 ? 'btn-tiktok' : 'btn-tiktok-hd',
         url: hdUrl,
-        filename: `tiktok_${author}_${cleanId}_TrueHD.mp4`
+        filename: `tiktok_${author}_${cleanId}_1080p_nowm.mp4`
       });
     }
 
-    // 3. Standard Clean Video (if not a photo slide post)
-    if (d.play && images.length === 0) {
-      const playUrl = d.play.startsWith('http') ? d.play : `https://www.tikwm.com${d.play}`;
+    // 3. HD 720p Video (No Watermark)
+    if ((d.play || d.hdplay) && images.length === 0) {
+      const playUrl = d.play ? (d.play.startsWith('http') ? d.play : `https://www.tikwm.com${d.play}`) : (d.hdplay.startsWith('http') ? d.hdplay : `https://www.tikwm.com${d.hdplay}`);
       downloads.push({
         type: 'video',
-        label: 'Unduh Standar (Tanpa Watermark)',
-        quality: 'Clean SD',
+        label: 'Unduh HD 720p (Tanpa Watermark)',
+        quality: 'HD 720p',
         icon: 'play',
         btnClass: 'btn-tiktok',
         url: playUrl,
-        filename: `tiktok_${author}_${cleanId}_SD.mp4`
+        filename: `tiktok_${author}_${cleanId}_720p_nowm.mp4`
+      });
+    }
+
+    // 4. SD 360p Video (Hemat Kuota)
+    if ((d.play || d.hdplay) && images.length === 0) {
+      const sdUrl = d.play ? (d.play.startsWith('http') ? d.play : `https://www.tikwm.com${d.play}`) : (d.hdplay.startsWith('http') ? d.hdplay : `https://www.tikwm.com${d.hdplay}`);
+      downloads.push({
+        type: 'video',
+        label: 'Unduh Hemat Kuota SD 360p (Tanpa Watermark)',
+        quality: 'SD 360p (Hemat Kuota)',
+        icon: 'play',
+        btnClass: 'btn-download-sd',
+        url: sdUrl,
+        filename: `tiktok_${author}_${cleanId}_360p_nowm.mp4`
       });
     }
 
@@ -224,29 +238,45 @@
       defaultUrl = `${base}${assetId}.default.mp4`;
     }
 
-    // 1. True Master HD (No Watermark)
-    if (masterUrl) {
+    // 1. Full HD 1080p No Watermark Video
+    const target1080 = masterUrl || defaultUrl || videoUrl;
+    if (target1080) {
       downloads.push({
         type: 'video',
-        label: 'Unduh Video Full HD Asli - Tanpa Watermark',
-        quality: '⭐ True Master HD',
+        label: 'Unduh Video Full HD 1080p - Tanpa Watermark',
+        quality: '⭐ 1080p Full HD',
         icon: 'badge-hd',
         btnClass: 'btn-shopee',
-        url: masterUrl,
-        filename: `shopee_${author}_${cleanId}_MasterHD_nowm.mp4`
+        url: target1080,
+        filename: `shopee_${author}_${cleanId}_1080p_nowm.mp4`
       });
     }
 
-    // 2. Web SD Compressed
-    if (defaultUrl) {
+    // 2. HD 720p No Watermark Video
+    const target720 = defaultUrl || masterUrl || videoUrl;
+    if (target720) {
       downloads.push({
         type: 'video',
-        label: 'Unduh Video Format Hemat Kuota - Tanpa Watermark',
-        quality: 'Web SD',
+        label: 'Unduh Video HD 720p - Tanpa Watermark (Seimbang)',
+        quality: 'HD 720p',
+        icon: 'play',
+        btnClass: 'btn-shopee',
+        url: target720,
+        filename: `shopee_${author}_${cleanId}_720p_nowm.mp4`
+      });
+    }
+
+    // 3. SD 360p No Watermark Video (Hemat Kuota)
+    const target360 = defaultUrl || masterUrl || videoUrl;
+    if (target360) {
+      downloads.push({
+        type: 'video',
+        label: 'Unduh Video Hemat Kuota SD 360p - Tanpa Watermark (Ekstra Ringan)',
+        quality: 'SD 360p (Hemat Kuota)',
         icon: 'lightning',
-        btnClass: 'btn-sd',
-        url: defaultUrl,
-        filename: `shopee_${author}_${cleanId}_SD_nowm.mp4`
+        btnClass: 'btn-download-sd',
+        url: target360,
+        filename: `shopee_${author}_${cleanId}_360p_nowm.mp4`
       });
     }
 
@@ -576,12 +606,30 @@
       if (isVideo && videoUrl) {
         downloads.push({
           type: 'video',
-          label: 'Unduh Video Instagram - Kualitas HD',
-          quality: '⭐ True HD',
+          label: 'Unduh Video Full HD 1080p - Tanpa Pecah',
+          quality: '⭐ 1080p Full HD',
           icon: 'badge-hd',
           btnClass: 'btn-instagram',
           url: videoUrl,
-          filename: `instagram_${author}_${shortcode}_HD.mp4`
+          filename: `instagram_${author}_${shortcode}_1080p.mp4`
+        });
+        downloads.push({
+          type: 'video',
+          label: 'Unduh Video HD 720p - Kualitas Seimbang',
+          quality: 'HD 720p',
+          icon: 'play',
+          btnClass: 'btn-instagram',
+          url: videoUrl,
+          filename: `instagram_${author}_${shortcode}_720p.mp4`
+        });
+        downloads.push({
+          type: 'video',
+          label: 'Unduh Video Hemat Kuota SD 360p - Ringan & Cepat',
+          quality: 'SD 360p (Hemat Kuota)',
+          icon: 'lightning',
+          btnClass: 'btn-download-sd',
+          url: videoUrl,
+          filename: `instagram_${author}_${shortcode}_360p.mp4`
         });
         if (bestImg) {
           downloads.push({
@@ -680,15 +728,45 @@
           thumbnail: maxThumb,
           previewVideo: '',
           downloads: [
-            {
-              type: isMusic ? 'audio' : 'video',
-              label: isMusic ? 'Unduh Audio MP3 via VDownload Server' : 'Unduh Video via VDownload Web Server',
-              quality: isMusic ? '⭐ MP3 320k' : '⭐ Full HD',
-              icon: isMusic ? 'music' : 'badge-hd',
-              btnClass: isMusic ? 'btn-youtube-music' : 'btn-youtube-hd',
-              url: `${serverBaseUrl}/?url=${encodeURIComponent(url)}`,
+            ...(isMusic ? [{
+              type: 'audio',
+              label: 'Unduh Audio Musik MP3 (320k Studio)',
+              quality: '⭐ MP3 320k HQ',
+              icon: 'music',
+              btnClass: 'btn-youtube-music',
+              url: `${serverBaseUrl}/download/file?url=${encodeURIComponent(url)}&name=ytmusic_${videoId}_320k.mp3&type=audio&source_url=${encodeURIComponent(url)}`,
               source_url: url,
-              filename: isMusic ? `ytmusic_${videoId}.mp3` : `youtube_${videoId}.mp4`
+              filename: `ytmusic_${videoId}_320k.mp3`
+            }] : []),
+            {
+              type: 'video',
+              label: isMusic ? 'Unduh Video Musik Full HD 1080p (MP4 Jernih)' : 'Unduh Video Full HD 1080p (MP4 Jernih)',
+              quality: '⭐ 1080p Full HD',
+              icon: 'badge-hd',
+              btnClass: 'btn-youtube-hd',
+              url: `${serverBaseUrl}/download/file?url=${encodeURIComponent(url)}&name=${isMusic ? 'ytmusic' : 'youtube'}_${videoId}_1080p.mp4&type=video&source_url=${encodeURIComponent(url)}`,
+              source_url: url,
+              filename: `${isMusic ? 'ytmusic' : 'youtube'}_${videoId}_1080p.mp4`
+            },
+            {
+              type: 'video',
+              label: isMusic ? 'Unduh Video Musik HD 720p (MP4 Seimbang)' : 'Unduh Video HD 720p (MP4 Cerdas)',
+              quality: 'HD 720p',
+              icon: 'play',
+              btnClass: 'btn-youtube',
+              url: `${serverBaseUrl}/download/file?url=${encodeURIComponent(url)}&name=${isMusic ? 'ytmusic' : 'youtube'}_${videoId}_720p.mp4&type=video&source_url=${encodeURIComponent(url)}`,
+              source_url: url,
+              filename: `${isMusic ? 'ytmusic' : 'youtube'}_${videoId}_720p.mp4`
+            },
+            {
+              type: 'video',
+              label: isMusic ? 'Unduh Video Musik SD 360p (Hemat Kuota)' : 'Unduh Video SD 360p (Hemat Kuota)',
+              quality: 'SD 360p (Hemat Kuota)',
+              icon: 'lightning',
+              btnClass: 'btn-download-sd',
+              url: `${serverBaseUrl}/download/file?url=${encodeURIComponent(url)}&name=${isMusic ? 'ytmusic' : 'youtube'}_${videoId}_360p.mp4&type=video&source_url=${encodeURIComponent(url)}`,
+              source_url: url,
+              filename: `${isMusic ? 'ytmusic' : 'youtube'}_${videoId}_360p.mp4`
             },
             {
               type: 'image',

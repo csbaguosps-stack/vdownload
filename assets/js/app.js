@@ -412,6 +412,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         showToast('📦 Mengemas dan mengunduh paket ZIP semua foto...', 'info');
                     } else if (dl.type === 'image') {
                         showToast('🖼️ Mengunduh foto kualitas HD...', 'info');
+                    } else if (dl.type === 'audio') {
+                        showToast('🎵 Mengunduh berkas audio musik...', 'info');
+                    } else if (dl.filename && (dl.filename.includes('360p') || dl.filename.includes('_SD'))) {
+                        showToast('⚡ Mengunduh video hemat kuota SD 360p...', 'info');
+                    } else if (dl.filename && dl.filename.includes('720p')) {
+                        showToast('🎬 Mengunduh video kualitas HD 720p...', 'info');
+                    } else if (dl.filename && (dl.filename.includes('1080p') || dl.filename.includes('MasterHD'))) {
+                        showToast('⭐ Mengunduh video Full HD 1080p...', 'info');
                     } else {
                         showToast('⚡ Mengunduh berkas...', 'info');
                     }

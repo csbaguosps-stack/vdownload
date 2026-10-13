@@ -230,12 +230,32 @@ class InstagramDownloader implements DownloaderInterface
 
                 $downloads[] = [
                     'type' => 'video',
-                    'label' => "Unduh Video Instagram{$resLabel} - Tanpa Pecah",
-                    'quality' => '⭐ True HD' . $sizeLabel,
-                    'icon' => 'bi-download',
+                    'label' => "Unduh Video Full HD 1080p{$resLabel} - Tanpa Pecah",
+                    'quality' => '⭐ 1080p Full HD' . $sizeLabel,
+                    'icon' => 'bi-badge-hd-fill',
                     'btn_class' => 'btn-instagram',
                     'url' => $videoUrl,
-                    'filename' => "instagram_{$author}_{$shortcode}_HD.mp4"
+                    'filename' => "instagram_{$author}_{$shortcode}_1080p.mp4"
+                ];
+
+                $downloads[] = [
+                    'type' => 'video',
+                    'label' => "Unduh Video HD 720p - Kualitas Seimbang",
+                    'quality' => 'HD 720p',
+                    'icon' => 'bi-play-circle-fill',
+                    'btn_class' => 'btn-instagram',
+                    'url' => $videoUrl,
+                    'filename' => "instagram_{$author}_{$shortcode}_720p.mp4"
+                ];
+
+                $downloads[] = [
+                    'type' => 'video',
+                    'label' => "Unduh Video Hemat Kuota SD 360p - Ringan & Cepat",
+                    'quality' => 'SD 360p (Hemat Kuota)',
+                    'icon' => 'bi-lightning-charge-fill',
+                    'btn_class' => 'btn-download-sd',
+                    'url' => $videoUrl,
+                    'filename' => "instagram_{$author}_{$shortcode}_360p.mp4"
                 ];
 
                 if (!empty($thumbnail)) {
@@ -575,12 +595,30 @@ class InstagramDownloader implements DownloaderInterface
         if (!empty($videoUrl)) {
             $downloads[] = [
                 'type' => 'video',
-                'label' => 'Unduh Video Instagram (Kualitas HD)',
-                'quality' => '⭐ True HD',
-                'icon' => 'bi-download',
+                'label' => 'Unduh Video Full HD 1080p (Kualitas Terbaik)',
+                'quality' => '⭐ 1080p Full HD',
+                'icon' => 'bi-badge-hd-fill',
                 'btn_class' => 'btn-instagram',
                 'url' => $videoUrl,
-                'filename' => "instagram_{$author}_{$shortcode}_HD.mp4"
+                'filename' => "instagram_{$author}_{$shortcode}_1080p.mp4"
+            ];
+            $downloads[] = [
+                'type' => 'video',
+                'label' => 'Unduh Video HD 720p (Kualitas Seimbang)',
+                'quality' => 'HD 720p',
+                'icon' => 'bi-play-circle-fill',
+                'btn_class' => 'btn-instagram',
+                'url' => $videoUrl,
+                'filename' => "instagram_{$author}_{$shortcode}_720p.mp4"
+            ];
+            $downloads[] = [
+                'type' => 'video',
+                'label' => 'Unduh Video Hemat Kuota SD 360p (Ringan & Cepat)',
+                'quality' => 'SD 360p (Hemat Kuota)',
+                'icon' => 'bi-lightning-charge-fill',
+                'btn_class' => 'btn-download-sd',
+                'url' => $videoUrl,
+                'filename' => "instagram_{$author}_{$shortcode}_360p.mp4"
             ];
         }
 
@@ -729,12 +767,30 @@ class InstagramDownloader implements DownloaderInterface
         } elseif (!empty($videoUrl)) {
             $downloads[] = [
                 'type' => 'video',
-                'label' => "Unduh Video Instagram - Tanpa Pecah",
-                'quality' => '⭐ True HD',
-                'icon' => 'bi-download',
+                'label' => "Unduh Video Full HD 1080p - Tanpa Pecah",
+                'quality' => '⭐ 1080p Full HD',
+                'icon' => 'bi-badge-hd-fill',
                 'btn_class' => 'btn-instagram',
                 'url' => $videoUrl,
-                'filename' => "instagram_{$id}_HD.mp4"
+                'filename' => "instagram_{$id}_1080p.mp4"
+            ];
+            $downloads[] = [
+                'type' => 'video',
+                'label' => "Unduh Video HD 720p - Kualitas Seimbang",
+                'quality' => 'HD 720p',
+                'icon' => 'bi-play-circle-fill',
+                'btn_class' => 'btn-instagram',
+                'url' => $videoUrl,
+                'filename' => "instagram_{$id}_720p.mp4"
+            ];
+            $downloads[] = [
+                'type' => 'video',
+                'label' => "Unduh Video Hemat Kuota SD 360p - Ringan & Cepat",
+                'quality' => 'SD 360p (Hemat Kuota)',
+                'icon' => 'bi-lightning-charge-fill',
+                'btn_class' => 'btn-download-sd',
+                'url' => $videoUrl,
+                'filename' => "instagram_{$id}_360p.mp4"
             ];
             if (!empty($cover)) {
                 $gallery[] = $cover;
