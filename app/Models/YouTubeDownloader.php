@@ -25,31 +25,50 @@ class YouTubeDownloader implements DownloaderInterface
 
     public function extract(string $url): array
     {
-        // Safe escaping on Windows to prevent % in query parameters from being stripped
-        $safeUrl = '"' . str_replace('"', '\"', $url) . '"';
-        // Use python -m yt_dlp with json dump and Node.js JavaScript runtime
-        $command = "python -m yt_dlp --js-runtimes node --skip-download --dump-single-json --no-warnings --no-playlist {$safeUrl} 2>&1";
-        
-        $output = shell_exec($command);
-        if (!$output) {
-            throw new \RuntimeException('Gagal mengekstrak video YouTube. Pastikan URL valid dan video bersifat publik.');
+        $cacheDir = \App\Config\Config::getStoragePath('cache' . DIRECTORY_SEPARATOR . 'yt_meta');
+        if (!is_dir($cacheDir)) {
+            @mkdir($cacheDir, 0777, true);
         }
-
-        // Clean any non-json lines before the json object
-        $jsonStart = strpos($output, '{');
-        if ($jsonStart !== false) {
-            $output = substr($output, $jsonStart);
-        }
-
-        $data = json_decode($output, true);
-        if (!$data || !isset($data['id'])) {
-            $errorMsg = 'Video YouTube / YouTube Music tidak ditemukan atau berstatus privat/dibatasi usia.';
-            if (str_contains($output, 'Private video')) {
-                $errorMsg = 'Video/lagu YouTube berstatus privat.';
-            } elseif (str_contains($output, 'Video unavailable')) {
-                $errorMsg = 'Video/lagu YouTube tidak tersedia atau telah dihapus.';
+        $cacheFile = $cacheDir . DIRECTORY_SEPARATOR . md5($url) . '.json';
+        $data = null;
+        if (file_exists($cacheFile) && (time() - filemtime($cacheFile) < 1800)) {
+            $cachedContent = @file_get_contents($cacheFile);
+            if ($cachedContent) {
+                $decoded = json_decode($cachedContent, true);
+                if (!empty($decoded) && isset($decoded['id'])) {
+                    $data = $decoded;
+                }
             }
-            throw new \RuntimeException($errorMsg);
+        }
+
+        if (!$data) {
+            $safeUrl = MediaCompressor::escapeArg($url);
+            $baseCmd = MediaCompressor::getYtDlpBaseCommand();
+            $command = "{$baseCmd} --skip-download --dump-single-json {$safeUrl} 2>&1";
+            
+            $output = shell_exec($command);
+            if (!$output) {
+                throw new \RuntimeException('Gagal mengekstrak video YouTube. Pastikan URL valid dan video bersifat publik.');
+            }
+
+            // Clean any non-json lines before the json object
+            $jsonStart = strpos($output, '{');
+            if ($jsonStart !== false) {
+                $output = substr($output, $jsonStart);
+            }
+
+            $data = json_decode($output, true);
+            if (!$data || !isset($data['id'])) {
+                $errorMsg = 'Video YouTube / YouTube Music tidak ditemukan atau berstatus privat/dibatasi usia.';
+                if (str_contains($output, 'Private video')) {
+                    $errorMsg = 'Video/lagu YouTube berstatus privat.';
+                } elseif (str_contains($output, 'Video unavailable')) {
+                    $errorMsg = 'Video/lagu YouTube tidak tersedia atau telah dihapus.';
+                }
+                throw new \RuntimeException($errorMsg);
+            }
+
+            @file_put_contents($cacheFile, json_encode($data));
         }
 
         $id = (string)$data['id'];
@@ -164,6 +183,16 @@ class YouTubeDownloader implements DownloaderInterface
             }
         }
 
+        // Fallback: if no dedicated audio-only stream was found, use progressive stream containing audio
+        if (!$bestAudio && $bestProgressive) {
+            $bestAudio = $bestProgressive;
+        } elseif (!$bestAudio && $f360) {
+            $bestAudio = $f360;
+        }
+        if (!$bestM4a && $bestAudio) {
+            $bestM4a = $bestAudio;
+        }
+
         $filePrefix = $isMusic ? 'ytmusic' : 'youtube';
 
         // 2. Build tailored downloads list
@@ -179,22 +208,24 @@ class YouTubeDownloader implements DownloaderInterface
                     'btn_class' => 'btn-youtube-music',
                     'url' => $bestAudio['url'],
                     'source_url' => $url,
+                    'needs_merge' => true,
                     'filename' => "{$filePrefix}_{$cleanAuthor}_{$cleanTitle}_320k.mp3"
                 ];
             }
 
-            // Primary 2: Original M4A / AAC (Direct Playable on iOS/Android/Windows)
+            // Primary 2: Original M4A / AAC (Direct Playable on iOS/Android/Windows - Instant Download)
             if ($bestM4a) {
                 $szM4a = (int)($bestM4a['filesize'] ?? ($bestM4a['filesize_approx'] ?? 0));
                 $szM4aFormatted = $szM4a > 0 ? round($szM4a / (1024 * 1024), 1) . ' MB' : '';
                 $downloads[] = [
                     'type' => 'audio',
-                    'label' => 'Unduh Audio Format M4A / AAC (Format Asli Tanpa Konversi)',
+                    'label' => 'Unduh Audio Format M4A / AAC (Format Asli Tanpa Konversi - Super Cepat)',
                     'quality' => 'M4A Original' . ($szM4aFormatted ? " • {$szM4aFormatted}" : ''),
                     'icon' => 'bi-file-earmark-music-fill',
                     'btn_class' => 'btn-download-audio',
                     'url' => $bestM4a['url'],
-                    'source_url' => $url,
+                    'source_url' => null,
+                    'needs_merge' => false,
                     'size_bytes' => $szM4a,
                     'size_formatted' => $szM4aFormatted,
                     'filename' => "{$filePrefix}_{$cleanAuthor}_{$cleanTitle}.m4a"
@@ -215,6 +246,7 @@ class YouTubeDownloader implements DownloaderInterface
                     'url' => $target1080['url'],
                     'audio_url' => $bestAudio ? $bestAudio['url'] : null,
                     'source_url' => $url,
+                    'needs_merge' => true,
                     'size_bytes' => $sz1080,
                     'size_formatted' => $sz1080Formatted,
                     'filename' => "{$filePrefix}_{$cleanAuthor}_{$cleanTitle}_1080p.mp4"
@@ -226,6 +258,7 @@ class YouTubeDownloader implements DownloaderInterface
             if ($target720) {
                 $sz720 = (int)($target720['filesize'] ?? ($target720['filesize_approx'] ?? 0));
                 $sz720Formatted = $sz720 > 0 ? round($sz720 / (1024 * 1024), 1) . ' MB' : '';
+                $isProg720 = ($target720 === $bestProgressive);
                 $downloads[] = [
                     'type' => 'video',
                     'label' => 'Unduh Video Musik HD 720p (MP4 Cerdas + Audio)',
@@ -233,8 +266,9 @@ class YouTubeDownloader implements DownloaderInterface
                     'icon' => 'bi-play-circle-fill',
                     'btn_class' => 'btn-youtube',
                     'url' => $target720['url'],
-                    'audio_url' => $bestAudio ? $bestAudio['url'] : null,
-                    'source_url' => $url,
+                    'audio_url' => $isProg720 ? null : ($bestAudio ? $bestAudio['url'] : null),
+                    'source_url' => $isProg720 ? null : $url,
+                    'needs_merge' => !$isProg720,
                     'size_bytes' => $sz720,
                     'size_formatted' => $sz720Formatted,
                     'filename' => "{$filePrefix}_{$cleanAuthor}_{$cleanTitle}_720p.mp4"
@@ -246,6 +280,7 @@ class YouTubeDownloader implements DownloaderInterface
             if ($target360) {
                 $sz360 = (int)($target360['filesize'] ?? ($target360['filesize_approx'] ?? 0));
                 $sz360Formatted = $sz360 > 0 ? round($sz360 / (1024 * 1024), 1) . ' MB' : '';
+                $isProg360 = ($target360 === $bestProgressive || (isset($target360['acodec']) && $target360['acodec'] !== 'none'));
                 $downloads[] = [
                     'type' => 'video',
                     'label' => 'Unduh Video Musik SD 360p (MP4 Hemat Kuota + Audio)',
@@ -253,8 +288,9 @@ class YouTubeDownloader implements DownloaderInterface
                     'icon' => 'bi-lightning-charge-fill',
                     'btn_class' => 'btn-download-sd',
                     'url' => $target360['url'],
-                    'audio_url' => $bestAudio ? $bestAudio['url'] : null,
-                    'source_url' => $url,
+                    'audio_url' => $isProg360 ? null : ($bestAudio ? $bestAudio['url'] : null),
+                    'source_url' => $isProg360 ? null : $url,
+                    'needs_merge' => !$isProg360,
                     'size_bytes' => $sz360,
                     'size_formatted' => $sz360Formatted,
                     'filename' => "{$filePrefix}_{$cleanAuthor}_{$cleanTitle}_360p.mp4"
@@ -289,6 +325,7 @@ class YouTubeDownloader implements DownloaderInterface
                     'url' => $target1080['url'],
                     'audio_url' => $bestAudio ? $bestAudio['url'] : null,
                     'source_url' => $url,
+                    'needs_merge' => true,
                     'size_bytes' => $sz1080,
                     'size_formatted' => $sz1080Formatted,
                     'filename' => "youtube_{$cleanAuthor}_{$cleanId}_1080p.mp4"
@@ -300,6 +337,7 @@ class YouTubeDownloader implements DownloaderInterface
             if ($target720) {
                 $sz720 = (int)($target720['filesize'] ?? ($target720['filesize_approx'] ?? 0));
                 $sz720Formatted = $sz720 > 0 ? round($sz720 / (1024 * 1024), 1) . ' MB' : '';
+                $isProg720 = ($target720 === $bestProgressive);
                 $downloads[] = [
                     'type' => 'video',
                     'label' => 'Unduh Video HD 720p (MP4 Cerdas + Audio)',
@@ -307,8 +345,9 @@ class YouTubeDownloader implements DownloaderInterface
                     'icon' => 'bi-play-circle-fill',
                     'btn_class' => 'btn-youtube',
                     'url' => $target720['url'],
-                    'audio_url' => $bestAudio ? $bestAudio['url'] : null,
-                    'source_url' => $url,
+                    'audio_url' => $isProg720 ? null : ($bestAudio ? $bestAudio['url'] : null),
+                    'source_url' => $isProg720 ? null : $url,
+                    'needs_merge' => !$isProg720,
                     'size_bytes' => $sz720,
                     'size_formatted' => $sz720Formatted,
                     'filename' => "youtube_{$cleanAuthor}_{$cleanId}_720p.mp4"
@@ -320,6 +359,7 @@ class YouTubeDownloader implements DownloaderInterface
             if ($target360) {
                 $sz360 = (int)($target360['filesize'] ?? ($target360['filesize_approx'] ?? 0));
                 $sz360Formatted = $sz360 > 0 ? round($sz360 / (1024 * 1024), 1) . ' MB' : '';
+                $isProg360 = ($target360 === $bestProgressive || (isset($target360['acodec']) && $target360['acodec'] !== 'none'));
                 $downloads[] = [
                     'type' => 'video',
                     'label' => 'Unduh Video SD 360p (MP4 Hemat Kuota + Audio)',
@@ -327,8 +367,9 @@ class YouTubeDownloader implements DownloaderInterface
                     'icon' => 'bi-lightning-charge-fill',
                     'btn_class' => 'btn-download-sd',
                     'url' => $target360['url'],
-                    'audio_url' => $bestAudio ? $bestAudio['url'] : null,
-                    'source_url' => $url,
+                    'audio_url' => $isProg360 ? null : ($bestAudio ? $bestAudio['url'] : null),
+                    'source_url' => $isProg360 ? null : $url,
+                    'needs_merge' => !$isProg360,
                     'size_bytes' => $sz360,
                     'size_formatted' => $sz360Formatted,
                     'filename' => "youtube_{$cleanAuthor}_{$cleanId}_360p.mp4"
@@ -345,6 +386,7 @@ class YouTubeDownloader implements DownloaderInterface
                     'btn_class' => 'btn-download-audio',
                     'url' => $bestAudio['url'],
                     'source_url' => $url,
+                    'needs_merge' => true,
                     'filename' => "youtube_{$cleanAuthor}_{$cleanId}_audio.mp3"
                 ];
             }

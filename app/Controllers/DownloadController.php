@@ -188,11 +188,13 @@ class DownloadController extends Controller
 
         $isHead = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'HEAD';
         $isYtSource = !empty($sourceUrl) && (str_contains($sourceUrl, 'youtube.com') || str_contains($sourceUrl, 'youtu.be'));
+        $needsMergeParam = isset($_GET['needs_merge']) ? ($_GET['needs_merge'] === '1' || $_GET['needs_merge'] === 'true') : null;
 
         // 1. DEDICATED YOUTUBE / YT MUSIC CONVERSION & MERGING (1080p, 720p, 360p, 320k MP3)
         if (!$forceRaw && $isYtSource && MediaCompressor::isAvailable()) {
             if ($type === 'audio' && str_ends_with(strtolower($fileName), '.mp3')) {
-                $targetFile = MediaCompressor::transcodeYtAudio($sourceUrl, '320k');
+                // Pass direct audio URL to enable instantaneous direct transcode!
+                $targetFile = MediaCompressor::transcodeYtAudio($sourceUrl, '320k', $fileUrl);
                 if ($targetFile && file_exists($targetFile) && filesize($targetFile) > 1024) {
                     $this->streamLocalFile($targetFile, $fileName, 'audio/mpeg', $isHead);
                     exit;
@@ -206,10 +208,18 @@ class DownloadController extends Controller
                 } elseif (str_contains($fileName, '1080p')) {
                     $maxH = '1080';
                 }
-                $targetFile = MediaCompressor::mergeYtVideo($sourceUrl, $maxH);
-                if ($targetFile && file_exists($targetFile) && filesize($targetFile) > 1024) {
-                    $this->streamLocalFile($targetFile, $fileName, 'video/mp4', $isHead);
-                    exit;
+
+                // Merge only if specifically required (1080p DASH, or needs_merge is explicitly true, or separate audio stream is attached)
+                $shouldMerge = ($needsMergeParam === true) 
+                    || str_contains($fileName, '1080p') 
+                    || (!empty($audioUrl) && $audioUrl !== $fileUrl);
+
+                if ($shouldMerge) {
+                    $targetFile = MediaCompressor::mergeYtVideo($sourceUrl, $maxH);
+                    if ($targetFile && file_exists($targetFile) && filesize($targetFile) > 1024) {
+                        $this->streamLocalFile($targetFile, $fileName, 'video/mp4', $isHead);
+                        exit;
+                    }
                 }
             }
         }
@@ -252,7 +262,7 @@ class DownloadController extends Controller
             }
         }
 
-        // 3. FALLBACK: Direct cURL proxy streaming
+        // 3. FALLBACK: Direct cURL proxy streaming with HTTP Range and 1MB buffer
         $mime = match ($type) {
             'audio' => (str_ends_with(strtolower($fileName), '.m4a') ? 'audio/mp4' : 'audio/mpeg'),
             'image' => 'image/jpeg',
@@ -265,6 +275,7 @@ class DownloadController extends Controller
         header('Expires: 0');
         header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
         header('Pragma: public');
+        header('Accept-Ranges: bytes');
 
         $headers = [
             'Accept: */*',
@@ -275,8 +286,11 @@ class DownloadController extends Controller
             $headers[] = 'Referer: https://music.youtube.com/';
             $headers[] = 'Origin: https://music.youtube.com';
         }
+        if (isset($_SERVER['HTTP_RANGE'])) {
+            $headers[] = 'Range: ' . $_SERVER['HTTP_RANGE'];
+        }
 
-        // Stream using cURL with live buffer flush and Content-Length passthrough
+        // Stream using cURL with live buffer flush and Content-Length / Range passthrough
         $ch = curl_init($fileUrl);
         curl_setopt_array($ch, [
             CURLOPT_FOLLOWLOCATION => true,
@@ -285,10 +299,15 @@ class DownloadController extends Controller
             CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
             CURLOPT_HTTPHEADER => $headers,
             CURLOPT_NOBODY => $isHead,
-            CURLOPT_BUFFERSIZE => 128 * 1024,
+            CURLOPT_BUFFERSIZE => 1024 * 1024,
             CURLOPT_HEADERFUNCTION => function($curl, $headerLine) {
-                if (stripos($headerLine, 'Content-Length:') === 0) {
+                if (stripos($headerLine, 'Content-Length:') === 0 
+                    || stripos($headerLine, 'Content-Range:') === 0 
+                    || stripos($headerLine, 'Accept-Ranges:') === 0) {
                     header(trim($headerLine));
+                }
+                if (stripos($headerLine, 'HTTP/') === 0 && str_contains($headerLine, '206')) {
+                    http_response_code(206);
                 }
                 return strlen($headerLine);
             },
@@ -307,25 +326,55 @@ class DownloadController extends Controller
     }
 
     /**
-     * Helper to stream local cached file
+     * Helper to stream local cached file with HTTP Range support for resumable multi-threaded downloads
      */
     private function streamLocalFile(string $filePath, string $downloadName, string $mime, bool $isHead): void
     {
+        $fileSize = filesize($filePath);
+        $start = 0;
+        $end = $fileSize - 1;
+
         header('Content-Description: File Transfer');
         header('Content-Type: ' . $mime);
         header('Content-Disposition: attachment; filename="' . $downloadName . '"');
         header('Expires: 0');
         header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
         header('Pragma: public');
-        header('Content-Length: ' . filesize($filePath));
+        header('Accept-Ranges: bytes');
         header('X-VDownload-Auto-Compressed: 1');
+
+        // Handle HTTP Range header (Resumable & Parallel multi-part downloads)
+        if (isset($_SERVER['HTTP_RANGE']) && preg_match('/bytes=\h*(\d+)-(\d*)[\D.*]?/i', $_SERVER['HTTP_RANGE'], $matches)) {
+            $start = (int)$matches[1];
+            if (!empty($matches[2])) {
+                $end = (int)$matches[2];
+            }
+            if ($start > $end || $start >= $fileSize) {
+                http_response_code(416);
+                header("Content-Range: bytes */{$fileSize}");
+                exit;
+            }
+            http_response_code(206);
+            header("Content-Range: bytes {$start}-{$end}/{$fileSize}");
+            header('Content-Length: ' . ($end - $start + 1));
+        } else {
+            header('Content-Length: ' . $fileSize);
+        }
 
         if (!$isHead) {
             $fp = fopen($filePath, 'rb');
             if ($fp) {
-                while (!feof($fp)) {
-                    echo fread($fp, 256 * 1024);
+                if ($start > 0) {
+                    fseek($fp, $start);
+                }
+                $bytesRemaining = $end - $start + 1;
+                $chunkSize = 1024 * 1024; // 1 MB high-throughput chunk
+                while (!feof($fp) && $bytesRemaining > 0 && connection_status() === CONNECTION_NORMAL) {
+                    $readLen = min($chunkSize, $bytesRemaining);
+                    $data = fread($fp, $readLen);
+                    echo $data;
                     flush();
+                    $bytesRemaining -= strlen($data);
                 }
                 fclose($fp);
             }

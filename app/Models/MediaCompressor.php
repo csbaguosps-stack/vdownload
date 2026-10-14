@@ -18,6 +18,8 @@ class MediaCompressor
 {
     private static ?string $cachedFfmpegPath = null;
     private static ?bool $hasNvencCache = null;
+    private static ?string $cachedDenoPath = null;
+    private static ?string $cachedAria2Path = null;
 
     /**
      * Locate FFmpeg binary on the system
@@ -55,6 +57,106 @@ class MediaCompressor
         }
 
         return null;
+    }
+
+    /**
+     * Locate Deno JavaScript runtime engine on the system
+     */
+    public static function getDenoPath(): ?string
+    {
+        if (self::$cachedDenoPath !== null) {
+            return self::$cachedDenoPath;
+        }
+
+        $appRoot = Config::getAppRoot();
+        $candidates = [
+            $appRoot . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'deno.exe',
+            'C:\\Users\\Baguosps\\.deno\\bin\\deno.exe',
+            'C:\\Program Files\\deno\\deno.exe',
+            'C:\\deno\\deno.exe'
+        ];
+
+        foreach ($candidates as $path) {
+            if (!empty($path) && file_exists($path) && is_executable($path)) {
+                self::$cachedDenoPath = $path;
+                return $path;
+            }
+        }
+
+        $pathOutput = @shell_exec('where.exe deno 2>NUL');
+        if (!empty($pathOutput)) {
+            $lines = explode("\n", trim($pathOutput));
+            $found = trim($lines[0]);
+            if (!empty($found) && file_exists($found)) {
+                self::$cachedDenoPath = $found;
+                return $found;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Locate aria2c multi-connection accelerator engine on the system
+     */
+    public static function getAria2Path(): ?string
+    {
+        if (self::$cachedAria2Path !== null) {
+            return self::$cachedAria2Path;
+        }
+
+        $appRoot = Config::getAppRoot();
+        $candidates = [
+            $appRoot . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'aria2c.exe',
+            'C:\\Users\\Baguosps\\AppData\\Local\\Microsoft\\WinGet\\Packages\\aria2.aria2_Microsoft.Winget.Source_8wekyb3d8bbwe\\aria2-1.37.0-win-64bit-build1\\aria2c.exe',
+            'C:\\Program Files\\aria2\\aria2c.exe',
+            'C:\\aria2\\aria2c.exe'
+        ];
+
+        foreach ($candidates as $path) {
+            if (!empty($path) && file_exists($path) && is_executable($path)) {
+                self::$cachedAria2Path = $path;
+                return $path;
+            }
+        }
+
+        $pathOutput = @shell_exec('where.exe aria2c 2>NUL');
+        if (!empty($pathOutput)) {
+            $lines = explode("\n", trim($pathOutput));
+            $found = trim($lines[0]);
+            if (!empty($found) && file_exists($found)) {
+                self::$cachedAria2Path = $found;
+                return $found;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Build base yt-dlp command with Deno JS engine, FFmpeg path, multi-fragment buffers, and SABR bypass
+     */
+    public static function getYtDlpBaseCommand(): string
+    {
+        $deno = self::getDenoPath();
+        $ffmpeg = self::getFfmpegPath();
+
+        $cmd = 'python -m yt_dlp --no-warnings --no-playlist';
+
+        if ($deno) {
+            $cmd .= ' --js-runtimes ' . self::escapeArg('deno:' . $deno);
+        } else {
+            $cmd .= ' --js-runtimes node';
+        }
+
+        if ($ffmpeg) {
+            $cmd .= ' --ffmpeg-location ' . self::escapeArg($ffmpeg);
+        }
+
+        // Acceleration flags: 5 concurrent fragments, 10MB chunk size, 1MB buffer, no check certs
+        $cmd .= ' --concurrent-fragments 5 --http-chunk-size 10M --buffer-size 1024k --no-check-certificates';
+
+        return $cmd;
     }
 
     /**
@@ -135,7 +237,7 @@ class MediaCompressor
      * High-speed parallel cURL buffer download to local temp file
      * Prevents FFmpeg's single-threaded HTTP client from lagging on large files.
      */
-    public static function downloadToTemp(string $url, int $timeout = 45, ?string $customUserAgent = null): ?string
+    public static function downloadToTemp(string $url, int $timeout = 180, ?string $customUserAgent = null): ?string
     {
         $ext = (str_contains($url, 'mime=audio') || str_contains($url, 'audio')) ? '.tmp' : '.mp4';
         $tmp = self::getCacheDir() . DIRECTORY_SEPARATOR . 'src_' . uniqid() . $ext;
@@ -162,8 +264,9 @@ class MediaCompressor
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_CONNECTTIMEOUT => 15,
             CURLOPT_TIMEOUT => $timeout,
-            CURLOPT_BUFFERSIZE => 512 * 1024,
+            CURLOPT_BUFFERSIZE => 1024 * 1024,
             CURLOPT_HTTPHEADER => $headers,
             CURLOPT_USERAGENT => $ua
         ]);
@@ -186,24 +289,34 @@ class MediaCompressor
     /**
      * Transcode YouTube / YouTube Music audio directly to pristine MP3 (320kbps)
      */
-    public static function transcodeYtAudio(string $sourceUrl, string $bitrate = '320k'): ?string
+    public static function transcodeYtAudio(string $sourceUrl, string $bitrate = '320k', ?string $directAudioUrl = null): ?string
     {
-        $ffmpeg = self::getFfmpegPath();
         $cacheDir = self::getCacheDir();
         $cacheKey = md5($sourceUrl . '_yt_audio_' . $bitrate);
         $finalFile = $cacheDir . DIRECTORY_SEPARATOR . $cacheKey . '.mp3';
 
+        // 1. Check existing cache (< 48 hours)
         if (file_exists($finalFile) && filesize($finalFile) > 10240) {
             if (time() - filemtime($finalFile) < 172800) {
                 return $finalFile;
             }
         }
 
+        // 2. ULTRA FAST PATH: If direct audio URL is provided and valid, download & convert directly with FFmpeg
+        if (!empty($directAudioUrl) && filter_var($directAudioUrl, FILTER_VALIDATE_URL)) {
+            $directConverted = self::compressAudio($directAudioUrl, ['bitrate' => $bitrate]);
+            if ($directConverted && file_exists($directConverted) && filesize($directConverted) > 10240) {
+                @copy($directConverted, $finalFile);
+                return $finalFile;
+            }
+        }
+
+        // 3. TURBO YT-DLP PIPELINE (Multi-Fragment + Deno + Threads 0)
         $tempTemplate = $cacheDir . DIRECTORY_SEPARATOR . 'tmp_' . $cacheKey . '.%(ext)s';
-        $ffmpegArg = $ffmpeg ? ' --ffmpeg-location ' . self::escapeArg($ffmpeg) : '';
-        $cmd = 'python -m yt_dlp --js-runtimes node --no-warnings --no-playlist -x --audio-format mp3 --audio-quality 0' 
-            . $ffmpegArg 
-            . ' -o ' . self::escapeArg($tempTemplate) 
+        $baseCmd = self::getYtDlpBaseCommand();
+        $cmd = $baseCmd . ' -x --audio-format mp3 --audio-quality ' . self::escapeArg($bitrate)
+            . ' --postprocessor-args ' . self::escapeArg('ffmpeg:-threads 0')
+            . ' -o ' . self::escapeArg($tempTemplate)
             . ' ' . self::escapeArg($sourceUrl) . ' 2>&1';
 
         $output = @shell_exec($cmd);
@@ -212,6 +325,28 @@ class MediaCompressor
         if (file_exists($tempMp3) && filesize($tempMp3) > 10240) {
             @rename($tempMp3, $finalFile);
             return $finalFile;
+        }
+
+        // Check if any matching tmp file was created
+        $matches = glob($cacheDir . DIRECTORY_SEPARATOR . 'tmp_' . $cacheKey . '.*');
+        if (!empty($matches)) {
+            foreach ($matches as $match) {
+                if (file_exists($match) && filesize($match) > 10240) {
+                    if (str_ends_with(strtolower($match), '.mp3')) {
+                        @rename($match, $finalFile);
+                        return $finalFile;
+                    }
+                    $ffmpeg = self::getFfmpegPath();
+                    if ($ffmpeg) {
+                        $remuxCmd = self::escapeArg($ffmpeg) . ' -y -i ' . self::escapeArg($match) . ' -vn -c:a libmp3lame -b:a ' . self::escapeArg($bitrate) . ' -threads 0 ' . self::escapeArg($finalFile);
+                        @shell_exec($remuxCmd);
+                        @unlink($match);
+                        if (file_exists($finalFile) && filesize($finalFile) > 10240) {
+                            return $finalFile;
+                        }
+                    }
+                }
+            }
         }
 
         return null;
@@ -234,11 +369,12 @@ class MediaCompressor
         }
 
         $tempTemplate = $cacheDir . DIRECTORY_SEPARATOR . 'tmp_' . $cacheKey . '.%(ext)s';
-        $ffmpegArg = $ffmpeg ? ' --ffmpeg-location ' . self::escapeArg($ffmpeg) : '';
         $formatArg = "bestvideo[height<={$maxHeight}]+bestaudio/best[height<={$maxHeight}]/best";
-        $cmd = 'python -m yt_dlp --js-runtimes node --no-warnings --no-playlist -f ' . self::escapeArg($formatArg)
+        $baseCmd = self::getYtDlpBaseCommand();
+
+        $cmd = $baseCmd . ' -f ' . self::escapeArg($formatArg)
             . ' --merge-output-format mp4 --remux-video mp4'
-            . $ffmpegArg
+            . ' --postprocessor-args ' . self::escapeArg('ffmpeg:-threads 0')
             . ' -o ' . self::escapeArg($tempTemplate)
             . ' ' . self::escapeArg($sourceUrl) . ' 2>&1';
 

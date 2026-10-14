@@ -744,8 +744,9 @@
               quality: '⭐ 1080p Full HD',
               icon: 'badge-hd',
               btnClass: 'btn-youtube-hd',
-              url: `${serverBaseUrl}/download/file?url=${encodeURIComponent(url)}&name=${isMusic ? 'ytmusic' : 'youtube'}_${videoId}_1080p.mp4&type=video&source_url=${encodeURIComponent(url)}`,
+              url: `${serverBaseUrl}/download/file?url=${encodeURIComponent(url)}&name=${isMusic ? 'ytmusic' : 'youtube'}_${videoId}_1080p.mp4&type=video&source_url=${encodeURIComponent(url)}&needs_merge=1`,
               source_url: url,
+              needs_merge: true,
               filename: `${isMusic ? 'ytmusic' : 'youtube'}_${videoId}_1080p.mp4`
             },
             {

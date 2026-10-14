@@ -1,7 +1,7 @@
 # 🚀 VDownload Pro - Multi-Platform Video, Photo & Music Downloader
 
-[![Version](https://img.shields.io/badge/Version-v2.3.0-0284c7?style=for-the-badge&logo=git&logoColor=white)](https://github.com/csbaguosps-stack/vdownload)
-[![Extension](https://img.shields.io/badge/Extension-v1.5.0-10b981?style=for-the-badge&logo=googlechrome&logoColor=white)](extension/)
+[![Version](https://img.shields.io/badge/Version-v2.4.0-0284c7?style=for-the-badge&logo=git&logoColor=white)](https://github.com/csbaguosps-stack/vdownload)
+[![Extension](https://img.shields.io/badge/Extension-v1.6.0-10b981?style=for-the-badge&logo=googlechrome&logoColor=white)](extension/)
 [![PHP Version](https://img.shields.io/badge/PHP-8.2%2B-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net/)
 [![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white)](https://getbootstrap.com/)
 [![License](https://img.shields.io/badge/License-Proprietary-0284c7?style=for-the-badge)](mailto:cs.baguosps@gmail.com)
@@ -13,11 +13,26 @@
 
 **VDownload Pro** adalah aplikasi web dan ekstensi browser modern untuk mengunduh video, foto/gambar, dan audio musik dari **YouTube**, **YouTube Music**, **TikTok**, **Instagram (Reels & Album Foto)**, dan **Shopee Video** tanpa tanda air (*no watermark*) dengan pilihan resolusi lengkap **1080p Full HD**, **720p HD**, dan **360p SD Hemat Kuota**, audio MP3 320kbps, pratinjau galeri carousel interaktif, serta paket unduhan berkas ZIP instan.
 
-Dilengkapi dengan mesin **Kompresi Cerdas Berakselerasi GPU NVIDIA (NVENC)** agar berkas video hemat kuota hingga ~60% **tanpa mengurangi ketajaman video (anti-pecah)**, serta memiliki **Ekstensi Browser Standalone (v1.5.0)** resmi untuk kemudahan unduh 1-klik langsung di halaman web peramban Anda.
+Dilengkapi dengan mesin **Kompresi Cerdas Berakselerasi GPU NVIDIA (NVENC)** agar berkas video hemat kuota hingga ~60% **tanpa mengurangi ketajaman video (anti-pecah)**, serta memiliki **Ekstensi Browser Standalone (v1.6.0)** resmi untuk kemudahan unduh 1-klik langsung di halaman web peramban Anda.
 
 ---
 
-## 🆕 Catatan Rilis Versi 2.3.0 (Changelog)
+## 🆕 Catatan Rilis Versi 2.4.0 (Changelog)
+
+* **⚡ Turbo Acceleration Engine (Unduhan YouTube & YouTube Music Berkecepatan Tinggi)**:
+  * **Integrasi Engine Deno JavaScript Runtime**: Menyelesaikan pemecahan *n-token cipher & JS challenges* YouTube secara otomatis, menghilangkan pembatasan kecepatan (*throttling*) YouTube dari ~50-100 KB/s melonjak drastis hingga **15–27 MB/s**.
+  * **Akselerasi Multi-Fragment & Chunking 10MB**: Menambahkan parameter unduhan paralel 5 fragmen (`--concurrent-fragments 5`), chunk buffer 10MB (`--http-chunk-size 10M`), serta alokasi buffer 1024k untuk stabilitas maksimal.
+  * **Direct Streaming Progressive Streams & M4A**: Format 720p & 360p (*progressive stream* yang sudah memiliki audio) serta M4A native dialirkan langsung tanpa perlu penggabungan ulang (*re-merge*) di server yang memakan waktu.
+  * **Pipeline Transcoding MP3 320k Kilat**: Mengonversi berkas audio YouTube Music menjadi MP3 320k berkualitas studio hanya dalam ~4-8 detik menggunakan FFmpeg multithreading CPU penuh (`-threads 0`).
+  * **Dukungan HTTP Range Requests & Resumable Downloads**: Menambahkan header `Accept-Ranges: bytes` dan status `206 Partial Content` di server streaming, memungkinkan unduhan paralel multi-koneksi lewat peramban atau *Download Manager* (IDM).
+  * **Cache Metadata Cerdas (30 Menit)**: Mengurangi waktu respon analisis URL berulang menjadi hanya **0.01 detik**.
+* **🧩 Pembaruan Ekstensi Browser ke v1.6.0**:
+  * Sinkronisasi parameter `needs_merge` untuk rute unduhan Full HD 1080p, 720p, 360p, dan MP3 320k turbo.
+  * Peningkatan keandalan penanganan URL stream langsung dan kompatibilitas Manifest V3.
+
+---
+
+## 📋 Catatan Rilis Versi 2.3.0
 
 * **🎬 Dukungan Pilihan Resolusi Lengkap: 1080p, 720p, & 360p (Baru)**:
   * **⭐ 1080p Full HD**: Kualitas visual tertinggi (*pristine clarity*) dengan audio jernih tanpa kompresi berlebih untuk layar TV dan laptop.
@@ -48,7 +63,7 @@ Dilengkapi dengan mesin **Kompresi Cerdas Berakselerasi GPU NVIDIA (NVENC)** aga
 
 ## 📑 Daftar Isi
 
-- [🆕 Catatan Rilis Versi 2.2.0 (Changelog)](#-catatan-rilis-versi-220-changelog)
+- [🆕 Catatan Rilis Versi 2.4.0 (Changelog)](#-catatan-rilis-versi-240-changelog)
 - [🎯 Ringkasan Dukungan Platform](#-ringkasan-dukungan-platform)
 - [✨ Fitur Unggulan](#-fitur-unggulan)
   - [1. 🎬 Multi-Platform Extractor (Video, Foto & Musik)](#1--multi-platform-extractor-video-foto--musik)
@@ -111,7 +126,7 @@ Dilengkapi dengan mesin **Kompresi Cerdas Berakselerasi GPU NVIDIA (NVENC)** aga
 
 ---
 
-### 3. 🧩 Ekstensi Browser Standalone (v1.5.0)
+### 3. 🧩 Ekstensi Browser Standalone (v1.6.0)
 * Terletak di direktori `extension/` berbasis **Manifest V3**.
 * **100% Mandiri (Standalone)**: Dapat langsung mengunduh video & foto dari peramban tanpa perlu server lokal aktif.
 * **Dukungan CORS Penuh**: Sinkronisasi instan dengan server VDownload lokal dengan izin preflight HTTP `OPTIONS`.

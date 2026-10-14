@@ -315,6 +315,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           if (item.source_url) {
             proxyUrl += `&source_url=${encodeURIComponent(item.source_url)}`;
           }
+          if (item.needs_merge) {
+            proxyUrl += `&needs_merge=1`;
+          }
           downloadTargetUrl = proxyUrl;
         }
         triggerDirectDownload(downloadTargetUrl, item.filename, btn);

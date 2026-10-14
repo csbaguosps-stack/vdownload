@@ -375,7 +375,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (Array.isArray(media.downloads) && media.downloads.length > 0) {
             media.downloads.forEach(dl => {
                 const btn = document.createElement('a');
-                let streamUrl = '';
                 if (dl.type === 'zip') {
                     streamUrl = dl.url;
                 } else {
@@ -385,6 +384,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     if (dl.source_url) {
                         streamUrl += `&source_url=${encodeURIComponent(dl.source_url)}`;
+                    }
+                    if (dl.needs_merge) {
+                        streamUrl += '&needs_merge=1';
                     }
                 }
                 
