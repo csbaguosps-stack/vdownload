@@ -28,13 +28,22 @@ class DownloadHistory
 
         $content = file_get_contents($file);
         $data = json_decode($content, true);
-        return is_array($data) ? $data : [];
+        if (!is_array($data)) {
+            return [];
+        }
+
+        // Pastikan tidak ada data file atau link stream unduhan yang ikut dimuat
+        return array_map(function ($item) {
+            unset($item['downloads'], $item['preview_video']);
+            return $item;
+        }, $data);
     }
 
     public static function add(array $item): void
     {
         $history = self::getAll();
         
+        // Simpan nama download dan link asal video untuk tracking (tanpa berkas/file fisik)
         $entry = [
             'id' => uniqid('dl_', true),
             'timestamp' => time(),
@@ -42,12 +51,10 @@ class DownloadHistory
             'platform' => $item['platform'] ?? 'video',
             'platform_name' => $item['platform_name'] ?? 'Video',
             'title' => $item['title'] ?? 'Video Download',
+            'url' => (string)($item['source_url'] ?? ($item['url'] ?? '')),
             'author' => $item['author'] ?? '',
-            'resolution' => $item['resolution'] ?? '',
             'duration' => $item['duration'] ?? '',
-            'thumbnail' => $item['thumbnail'] ?? '',
-            'preview_video' => $item['preview_video'] ?? '',
-            'downloads' => $item['downloads'] ?? []
+            'thumbnail' => $item['thumbnail'] ?? ''
         ];
 
         // Prepend to top and limit to 50 items

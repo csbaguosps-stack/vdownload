@@ -1065,3 +1065,17 @@ body {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
+.cursor-pointer {
+    cursor: pointer !important;
+}
+
+#instagramLoginModal .modal-content {
+    border-radius: 18px !important;
+    overflow: hidden;
+    box-shadow: 0 25px 60px -15px rgba(220, 39, 67, 0.25) !important;
+}
+
+#instagramLoginModal .modal-title {
+    letter-spacing: -0.01em;
+}
+

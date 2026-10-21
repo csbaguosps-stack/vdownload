@@ -63,6 +63,8 @@ try {
     $router->get('extension/download', [HomeController::class, 'downloadExtension']);
     $router->get('settings', [HomeController::class, 'settings']);
     $router->post('settings/save', [HomeController::class, 'saveSettings']);
+    $router->post('settings/save-ig-session', [HomeController::class, 'saveInstagramSession']);
+    $router->get('settings/ig-status', [HomeController::class, 'getInstagramStatus']);
     $router->post('settings/clear-cache', [HomeController::class, 'clearCompressionCache']);
     $router->post('history/clear', [HomeController::class, 'clearHistory']);
     $router->get('history/delete', [HomeController::class, 'deleteHistoryItem']);

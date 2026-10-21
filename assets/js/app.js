@@ -130,10 +130,21 @@ document.addEventListener('DOMContentLoaded', () => {
             platformIcon.innerHTML = '<i class="bi bi-tiktok fs-4 text-info"></i>';
         } else if (platform === 'instagram') {
             platformIcon.innerHTML = '<i class="bi bi-instagram fs-4 text-danger"></i>';
+            const igStatusBar = document.getElementById('igStatusBar');
+            if (igStatusBar) igStatusBar.classList.remove('d-none');
+            checkInstagramStatus();
         } else if (platform === 'shopee') {
             platformIcon.innerHTML = '<i class="bi bi-bag-check-fill fs-4 text-warning"></i>';
         } else {
             platformIcon.innerHTML = '<i class="bi bi-link-45deg fs-4 text-secondary"></i>';
+        }
+
+        // Hide igStatusBar if not on instagram tab and input doesn't have instagram URL
+        const activeTab = document.querySelector('.btn-platform-tab.active');
+        const isIgTab = activeTab && activeTab.getAttribute('data-platform') === 'instagram';
+        const igStatusBar = document.getElementById('igStatusBar');
+        if (igStatusBar && !isIgTab && platform !== 'instagram') {
+            igStatusBar.classList.add('d-none');
         }
     }
 
@@ -185,18 +196,38 @@ document.addEventListener('DOMContentLoaded', () => {
             tab.classList.add('active');
 
             const filter = tab.getAttribute('data-platform');
+            const igStatusBar = document.getElementById('igStatusBar');
             if (filter === 'all') {
                 input.placeholder = 'Tempel tautan video YouTube, YT Music, TikTok, Instagram, atau Shopee di sini...';
+                if (igStatusBar && detectPlatform(input.value.trim()) !== 'instagram') {
+                    igStatusBar.classList.add('d-none');
+                }
             } else if (filter === 'ytmusic') {
                 input.placeholder = 'Tempel tautan YouTube Music (contoh: https://music.youtube.com/watch?v=...)...';
+                if (igStatusBar && detectPlatform(input.value.trim()) !== 'instagram') {
+                    igStatusBar.classList.add('d-none');
+                }
             } else if (filter === 'youtube') {
                 input.placeholder = 'Tempel tautan YouTube video / musik (contoh: https://www.youtube.com/watch?v=...)...';
+                if (igStatusBar && detectPlatform(input.value.trim()) !== 'instagram') {
+                    igStatusBar.classList.add('d-none');
+                }
             } else if (filter === 'tiktok') {
                 input.placeholder = 'Tempel tautan TikTok (contoh: https://vt.tiktok.com/...)...';
+                if (igStatusBar && detectPlatform(input.value.trim()) !== 'instagram') {
+                    igStatusBar.classList.add('d-none');
+                }
             } else if (filter === 'instagram') {
                 input.placeholder = 'Tempel tautan Instagram Reels (contoh: https://www.instagram.com/reel/...)...';
+                if (igStatusBar) {
+                    igStatusBar.classList.remove('d-none');
+                    checkInstagramStatus();
+                }
             } else if (filter === 'shopee') {
                 input.placeholder = 'Tempel tautan Shopee Video (contoh: https://sv.shopee.co.id/share-video/...)...';
+                if (igStatusBar && detectPlatform(input.value.trim()) !== 'instagram') {
+                    igStatusBar.classList.add('d-none');
+                }
             }
             input.focus();
         });
@@ -234,13 +265,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (!response.ok || !data.success) {
-                throw new Error(data.error || 'Gagal memproses video.');
+                const err = new Error(data.error || 'Gagal memproses video.');
+                err.requires_login = data.requires_login || false;
+                err.platform = data.platform || detectPlatform(url);
+                throw err;
             }
 
             renderResult(data.data);
             showToast('Video berhasil dianalisis! Siap diunduh.', 'success');
         } catch (err) {
-            showError(err.message);
+            const msg = err.message || 'Terjadi kesalahan saat memproses video.';
+            const isIg = err.platform === 'instagram' || detectPlatform(url) === 'instagram';
+            const isLoginIssue = err.requires_login 
+                || (isIg && (msg.toLowerCase().includes('login') || msg.toLowerCase().includes('privat') || msg.toLowerCase().includes('sessionid') || msg.toLowerCase().includes('membatasi akses')));
+
+            if (isLoginIssue) {
+                showInstagramLoginError(msg);
+            } else {
+                showError(msg);
+            }
         } finally {
             setLoadingState(false);
         }
@@ -509,6 +552,34 @@ document.addEventListener('DOMContentLoaded', () => {
         errorAlert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
+    function showInstagramLoginError(msg) {
+        if (!errorMessage || !errorAlert) return;
+        errorMessage.innerHTML = `
+            <div class="d-flex flex-column gap-2 py-1">
+                <div class="d-flex align-items-center gap-2 text-danger fw-bold fs-6">
+                    <i class="bi bi-instagram fs-4"></i>
+                    <span>Akses Login Instagram Diperlukan</span>
+                </div>
+                <div class="text-secondary small">
+                    ${msg || 'Instagram membatasi akses ke video ini. Akun pembuat mungkin bersifat privat atau Instagram meminta verifikasi login.'}
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mt-2 pt-2 border-top border-danger-subtle">
+                    <button type="button" class="btn btn-danger btn-sm fw-bold px-3 shadow-xs d-inline-flex align-items-center gap-2" onclick="window.openInstagramLoginModal()">
+                        <i class="bi bi-key-fill"></i>
+                        <span>Login / Hubungkan Instagram</span>
+                    </button>
+                    <a href="https://www.instagram.com/accounts/login/" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger btn-sm d-inline-flex align-items-center gap-1">
+                        <i class="bi bi-box-arrow-up-right"></i>
+                        <span>Buka instagram.com</span>
+                    </a>
+                </div>
+            </div>
+        `;
+        errorAlert.classList.remove('d-none');
+        resultContainer.classList.add('d-none');
+        errorAlert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
     function hideError() {
         errorAlert.classList.add('d-none');
     }
@@ -723,5 +794,147 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         compressionModalInstance?.show();
+    }
+
+    // ==========================================
+    // Instagram Login & Session Cookie Handling
+    // ==========================================
+    const igStatusBar = document.getElementById('igStatusBar');
+    const igStatusUnconnected = document.getElementById('igStatusUnconnected');
+    const igStatusConnected = document.getElementById('igStatusConnected');
+    const igStatusMaskedBadge = document.getElementById('igStatusMaskedBadge');
+    const btnQuickIgLogin = document.getElementById('btnQuickIgLogin');
+    const btnQuickIgSessionStatus = document.getElementById('btnQuickIgSessionStatus');
+    const instagramLoginModalEl = document.getElementById('instagramLoginModal');
+    let instagramLoginModalInstance = null;
+
+    const modalIgSessionInput = document.getElementById('modalIgSessionInput');
+    const btnModalSaveIgSession = document.getElementById('btnModalSaveIgSession');
+    const btnModalClearIgSession = document.getElementById('btnModalClearIgSession');
+    const modalIgStatusBanner = document.getElementById('modalIgStatusBanner');
+    const modalMaskedSessionText = document.getElementById('modalMaskedSessionText');
+
+    function getIgModalInstance() {
+        if (!instagramLoginModalInstance && typeof bootstrap !== 'undefined' && instagramLoginModalEl) {
+            instagramLoginModalInstance = new bootstrap.Modal(instagramLoginModalEl);
+        }
+        return instagramLoginModalInstance;
+    }
+
+    async function checkInstagramStatus() {
+        try {
+            const res = await fetch(`${baseUrl}/settings/ig-status`);
+            const data = await res.json();
+            if (data && data.success) {
+                if (data.has_session) {
+                    igStatusConnected?.classList.remove('d-none');
+                    igStatusUnconnected?.classList.add('d-none');
+                    if (igStatusMaskedBadge) igStatusMaskedBadge.textContent = data.masked_session || 'Aktif';
+                    if (modalIgStatusBanner) modalIgStatusBanner.classList.remove('d-none');
+                    if (modalMaskedSessionText) modalMaskedSessionText.textContent = data.masked_session || 'Aktif';
+                } else {
+                    igStatusConnected?.classList.add('d-none');
+                    igStatusUnconnected?.classList.remove('d-none');
+                    if (modalIgStatusBanner) modalIgStatusBanner.classList.add('d-none');
+                }
+            }
+        } catch (e) {
+            // ignore network/status errors
+        }
+    }
+
+    window.openInstagramLoginModal = function() {
+        checkInstagramStatus();
+        getIgModalInstance()?.show();
+    };
+
+    btnQuickIgLogin?.addEventListener('click', () => {
+        window.openInstagramLoginModal();
+    });
+
+    btnQuickIgSessionStatus?.addEventListener('click', () => {
+        window.openInstagramLoginModal();
+    });
+
+    btnModalSaveIgSession?.addEventListener('click', async () => {
+        const val = modalIgSessionInput ? modalIgSessionInput.value.trim() : '';
+        if (!val) {
+            showToast('Silakan masukkan nilai cookie sessionid terlebih dahulu.', 'warning');
+            modalIgSessionInput?.focus();
+            return;
+        }
+
+        btnModalSaveIgSession.disabled = true;
+        btnModalSaveIgSession.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan...';
+
+        try {
+            const res = await fetch(`${baseUrl}/settings/save-ig-session`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ instagram_sessionid: val })
+            });
+            const data = await res.json();
+            if (data && data.success) {
+                showToast(data.message || 'Sesi Instagram berhasil disimpan!', 'success');
+                await checkInstagramStatus();
+                getIgModalInstance()?.hide();
+
+                // If input currently has an Instagram link, auto-retry downloading immediately!
+                const currentUrl = input ? input.value.trim() : '';
+                if (currentUrl && detectPlatform(currentUrl) === 'instagram') {
+                    showToast('Mencoba mengunduh video Instagram kembali dengan sesi tersimpan...', 'info');
+                    processDownload(currentUrl);
+                }
+            } else {
+                showToast(data.error || 'Gagal menyimpan sesi Instagram.', 'danger');
+            }
+        } catch (e) {
+            showToast('Terjadi kesalahan saat menyimpan sesi.', 'danger');
+        } finally {
+            btnModalSaveIgSession.disabled = false;
+            btnModalSaveIgSession.innerHTML = '<i class="bi bi-check2-circle me-1"></i> Simpan';
+        }
+    });
+
+    btnModalClearIgSession?.addEventListener('click', async () => {
+        if (!confirm('Yakin ingin memutuskan/menghapus cookie Instagram dari aplikasi?')) return;
+        try {
+            const res = await fetch(`${baseUrl}/settings/save-ig-session`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ instagram_sessionid: '' })
+            });
+            const data = await res.json();
+            if (data && data.success) {
+                if (modalIgSessionInput) modalIgSessionInput.value = '';
+                showToast('Sesi Instagram berhasil dihapus.', 'info');
+                await checkInstagramStatus();
+            }
+        } catch (e) {
+            showToast('Gagal menghapus sesi.', 'danger');
+        }
+    });
+
+    // Check Instagram status on startup
+    checkInstagramStatus();
+
+    // Auto-fill and process URL if provided in query string (e.g., from History tracking "Buka" button)
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const queryUrl = urlParams.get('url');
+        if (queryUrl && input) {
+            input.value = queryUrl;
+            if (typeof updatePlatformIcon === 'function') {
+                updatePlatformIcon(queryUrl);
+            }
+            if (typeof processDownload === 'function') {
+                processDownload(queryUrl);
+            }
+        }
+    } catch (e) {
+        // ignore param parsing error
     }
 });

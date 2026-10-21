@@ -686,6 +686,34 @@ class MediaCompressor
     }
 
     /**
+     * Otomatis bersihkan berkas-berkas sementara di server agar media tidak tersimpan permanen
+     */
+    public static function pruneOldFiles(int $maxAgeSeconds = 300): int
+    {
+        $dir = self::getCacheDir();
+        $deleted = 0;
+        $now = time();
+
+        if (is_dir($dir)) {
+            $files = scandir($dir);
+            foreach ($files as $f) {
+                if ($f === '.' || $f === '..' || $f === '.gitkeep') continue;
+                $path = $dir . DIRECTORY_SEPARATOR . $f;
+                if (is_file($path)) {
+                    $mtime = @filemtime($path);
+                    if ($mtime && ($now - $mtime) > $maxAgeSeconds) {
+                        if (@unlink($path)) {
+                            $deleted++;
+                        }
+                    }
+                }
+            }
+        }
+
+        return $deleted;
+    }
+
+    /**
      * Purge all compressed cache files
      */
     public static function clearCache(): int

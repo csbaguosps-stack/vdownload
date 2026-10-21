@@ -73,8 +73,10 @@ class DownloadController extends Controller
 
         try {
             $result = $selectedDownloader->extract($url);
+            $result['source_url'] = $url;
+            $result['url'] = $url;
 
-            // Save to recent history
+            // Save to recent history (nama dan link asal untuk tracking, tanpa berkas fisik)
             DownloadHistory::add($result);
 
             $this->jsonResponse([
@@ -82,9 +84,20 @@ class DownloadController extends Controller
                 'data' => $result
             ]);
         } catch (\Throwable $e) {
+            $isInstagram = $selectedDownloader instanceof InstagramDownloader;
+            $msg = $e->getMessage();
+            $requiresLogin = $isInstagram && (
+                str_contains(strtolower($msg), 'login') 
+                || str_contains(strtolower($msg), 'privat')
+                || str_contains(strtolower($msg), 'sessionid')
+                || str_contains(strtolower($msg), 'membatasi akses')
+            );
+
             $this->jsonResponse([
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => $msg,
+                'requires_login' => $requiresLogin,
+                'platform' => $isInstagram ? 'instagram' : null
             ], 422);
         }
     }
@@ -169,6 +182,9 @@ class DownloadController extends Controller
             echo 'Parameter URL tidak valid.';
             exit;
         }
+
+        // Bersihkan berkas-berkas sementara di server secara otomatis
+        MediaCompressor::pruneOldFiles(300);
 
         // Clean filename
         $fileName = preg_replace('/[^a-zA-Z0-9_\-\.]/', '_', $fileName);
@@ -377,6 +393,11 @@ class DownloadController extends Controller
                     $bytesRemaining -= strlen($data);
                 }
                 fclose($fp);
+
+                // Auto-cleanup: hapus berkas fisik dari server setelah unduhan selesai agar tidak tersimpan
+                if (!isset($_SERVER['HTTP_RANGE']) || $bytesRemaining <= 0) {
+                    @unlink($filePath);
+                }
             }
         }
     }

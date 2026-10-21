@@ -61,6 +61,24 @@ $baseUrl = Config::getBaseUrl();
                     </div>
                 </div>
 
+                <!-- Instagram Status Bar (Quick indicator & login trigger) -->
+                <div id="igStatusBar" class="d-none mb-3 d-flex align-items-center justify-content-center gap-2 animate-fade-in">
+                    <div id="igStatusUnconnected" class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 py-1 shadow-xs d-inline-flex align-items-center gap-2" id="btnQuickIgLogin">
+                            <i class="bi bi-instagram"></i>
+                            <span class="fw-semibold">Hubungkan / Login Instagram</span>
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill small" style="font-size: 0.7rem;">Opsional</span>
+                        </button>
+                    </div>
+                    <div id="igStatusConnected" class="d-none d-flex align-items-center gap-2">
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill shadow-xs d-inline-flex align-items-center gap-2 cursor-pointer" id="btnQuickIgSessionStatus" title="Klik untuk mengelola sesi Instagram" style="cursor: pointer;">
+                            <i class="bi bi-shield-check-fill text-success fs-6"></i>
+                            <span class="fw-semibold">Akun Instagram Terhubung</span>
+                            <span class="badge bg-success text-white rounded-pill px-2 py-0" id="igStatusMaskedBadge" style="font-size: 0.7rem;">Aktif</span>
+                        </span>
+                    </div>
+                </div>
+
                 <!-- Input Card Form (Responsive Modern Layout) -->
                 <div class="card glass-card border-0 search-card">
                     <form id="downloadForm" onsubmit="return false;" class="m-0">
@@ -347,7 +365,7 @@ $baseUrl = Config::getBaseUrl();
                     <h4 class="fw-bold text-dark mb-0">
                         <i class="bi bi-clock-history text-primary me-2"></i>Riwayat Unduhan Terakhir
                     </h4>
-                    <p class="text-secondary small mb-0">Video yang baru saja Anda analisa dan unduh</p>
+                    <p class="text-secondary small mb-0">Nama media dan video yang baru saja diunduh (berkas file tidak disimpan di server)</p>
                 </div>
                 <a href="<?= $baseUrl ?>/history" class="btn btn-sm btn-outline-primary fw-medium">
                     Lihat Semua <i class="bi bi-arrow-right"></i>
@@ -363,7 +381,7 @@ $baseUrl = Config::getBaseUrl();
                                 <img src="<?= htmlspecialchars($item['thumbnail']) ?>" alt="Thumbnail" class="history-thumb-img" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23e2e8f0%22/><text x=%2250%22 y=%2255%22 font-size=%2225%22 text-anchor=%22middle%22 fill=%22%23475569%22>🎬</text></svg>'">
                             <?php else: ?>
                                 <div class="history-thumb-placeholder d-flex align-items-center justify-content-center h-100 text-secondary">
-                                    <i class="bi bi-play-btn fs-4"></i>
+                                    <i class="bi bi-film fs-4"></i>
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -371,32 +389,22 @@ $baseUrl = Config::getBaseUrl();
                             <span class="badge badge-platform badge-<?= htmlspecialchars($item['platform'] ?? 'video') ?> mb-1">
                                 <?= htmlspecialchars($item['platform_name'] ?? 'Video') ?>
                             </span>
-                            <?php if (!empty($item['resolution'])): ?>
-                                <span class="badge bg-success-subtle text-success border border-success-subtle px-1 py-0 small ms-1 mb-1">
-                                    <?= htmlspecialchars($item['resolution']) ?>
-                                </span>
-                            <?php endif; ?>
                             <h6 class="text-dark text-truncate mb-1 small fw-bold" title="<?= htmlspecialchars($item['title'] ?? '') ?>">
                                 <?= htmlspecialchars($item['title'] ?? 'Video Download') ?>
                             </h6>
+                            <?php if (!empty($item['url'])): ?>
+                            <div class="text-truncate mb-1" style="font-size: 0.75rem;">
+                                <a href="<?= htmlspecialchars($item['url']) ?>" target="_blank" rel="noopener noreferrer" class="text-primary text-decoration-none" title="<?= htmlspecialchars($item['url']) ?>">
+                                    <i class="bi bi-link-45deg me-1"></i><?= htmlspecialchars($item['url']) ?>
+                                </a>
+                            </div>
+                            <?php endif; ?>
                             <div class="text-secondary small d-flex align-items-center justify-content-between">
                                 <span><?= htmlspecialchars($item['author'] ?? 'Creator') ?></span>
                                 <span class="opacity-75"><?= htmlspecialchars($item['formatted_time'] ?? '') ?></span>
                             </div>
                         </div>
                     </div>
-
-                    <?php if (!empty($item['downloads'])): ?>
-                    <div class="mt-2 pt-2 border-top border-light-subtle d-flex gap-2">
-                        <?php 
-                        $firstDl = $item['downloads'][0];
-                        $streamUrl = $baseUrl . '/download/file?url=' . urlencode($firstDl['url']) . '&name=' . urlencode($firstDl['filename'] ?? 'video.mp4') . '&type=' . ($firstDl['type'] ?? 'video');
-                        ?>
-                        <a href="<?= $streamUrl ?>" class="btn btn-sm btn-primary w-100 fw-semibold">
-                            <i class="bi bi-download me-1"></i> Unduh Ulang
-                        </a>
-                    </div>
-                    <?php endif; ?>
                 </div>
             </div>
             <?php endforeach; ?>
@@ -525,6 +533,107 @@ $baseUrl = Config::getBaseUrl();
                             </button>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instagram Login & Session Modal -->
+    <div class="modal fade" id="instagramLoginModal" tabindex="-1" aria-labelledby="instagramLoginModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-card border-0 shadow-2xl rounded-4 overflow-hidden">
+                <div class="p-4 border-bottom border-light-subtle d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, rgba(220, 39, 67, 0.08), rgba(245, 133, 41, 0.08));">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center shadow-xs" style="width: 44px; height: 44px; background: var(--gradient-instagram); color: white;">
+                            <i class="bi bi-instagram fs-4"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold text-dark mb-0" id="instagramLoginModalLabel">Akses &amp; Login Instagram</h5>
+                            <p class="text-secondary small mb-0">Hubungkan akun agar bebas unduh video Reels &amp; postingan</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    <!-- Alert Status -->
+                    <div id="modalIgStatusBanner" class="alert alert-info border-0 d-flex align-items-center justify-content-between p-3 rounded-3 mb-3 d-none">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                            <div class="small">
+                                <strong>Akun Terhubung:</strong> Sesi aktif (<span id="modalMaskedSessionText">...</span>)
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-danger btn-sm py-1 px-2" id="btnModalClearIgSession">
+                            <i class="bi bi-trash3"></i> Putuskan
+                        </button>
+                    </div>
+
+                    <!-- Step 1: Open Instagram -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-dark small d-flex align-items-center gap-2">
+                            <span class="badge bg-danger rounded-circle p-1" style="width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;">1</span>
+                            Login ke Instagram di Browser
+                        </label>
+                        <p class="text-secondary small mb-2">
+                            Pastikan Anda sudah login ke akun Instagram di browser Anda. Klik tombol di bawah untuk membuka halaman login Instagram secara langsung:
+                        </p>
+                        <a href="https://www.instagram.com/accounts/login/" target="_blank" rel="noopener noreferrer" class="btn btn-instagram w-100 fw-bold py-2 d-flex align-items-center justify-content-center gap-2 shadow-xs">
+                            <i class="bi bi-box-arrow-up-right"></i> Buka &amp; Login ke Instagram.com
+                        </a>
+                    </div>
+
+                    <!-- Step 2: Cookie Input (Auto-Save via AJAX) -->
+                    <div class="mb-4">
+                        <label for="modalIgSessionInput" class="form-label fw-bold text-dark small d-flex align-items-center gap-2">
+                            <span class="badge bg-primary rounded-circle p-1" style="width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;">2</span>
+                            Masukkan Cookie sessionid Instagram
+                        </label>
+                        <div class="input-group mb-2">
+                            <input 
+                                type="text" 
+                                class="form-control border-secondary-subtle" 
+                                id="modalIgSessionInput" 
+                                placeholder="Tempel sessionid di sini (contoh: 123456789%3Aabcde...)"
+                                autocomplete="off"
+                            >
+                            <button class="btn btn-primary fw-bold px-3" type="button" id="btnModalSaveIgSession">
+                                <i class="bi bi-check2-circle me-1"></i> Simpan
+                            </button>
+                        </div>
+                        <div class="form-text small text-secondary">
+                            <i class="bi bi-info-circle me-1"></i> Cookie <code>sessionid</code> digunakan server hanya untuk mengautentikasi unduhan reel/video yang diminta.
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Fast Bookmarklet & Helper Accordion -->
+                    <div class="card bg-light border border-light-subtle rounded-3 p-3">
+                        <h6 class="fw-bold text-dark small mb-2 d-flex align-items-center gap-2">
+                            <i class="bi bi-lightning-charge-fill text-warning"></i>
+                            Pintasan Cepat: Ambil sessionid Tanpa Repot
+                        </h6>
+                        <p class="small text-secondary mb-2">
+                            <strong>Cara 1 (Tombol Bookmark Pintas):</strong> Tarik tombol di bawah ke bilah Bookmark browser Anda. Saat membuka <em>instagram.com</em>, klik tombol tersebut untuk otomatis melihat cookie sessionid Anda:
+                        </p>
+                        <div class="mb-3">
+                            <a class="btn btn-outline-primary btn-sm fw-medium shadow-2xs" 
+                               href="javascript:(function(){const c=document.cookie.split('; ').find(r=>r.startsWith('sessionid='));if(c){const s=c.split('=')[1];prompt('Salin nilai cookie sessionid Instagram Anda:',s);}else{alert('Tidak menemukan sessionid. Pastikan Anda sudah login ke instagram.com di tab ini!');}})();" 
+                               onclick="alert('Tarik (drag and drop) tombol ini ke bilah Bookmark (Ctrl+Shift+B) browser Anda!'); return false;"
+                               title="Tarik tombol ini ke bilah Bookmark Anda">
+                                <i class="bi bi-bookmark-star-fill text-warning me-1"></i> 🔖 Ambil Cookie Instagram (Tarik ke Bookmark)
+                            </a>
+                        </div>
+                        <p class="small text-secondary mb-0">
+                            <strong>Cara 2 (Developer Tools):</strong> Di instagram.com, tekan <kbd class="bg-secondary text-white">F12</kbd> &rarr; tab <strong>Application</strong> &rarr; <strong>Cookies</strong> &rarr; <code>instagram.com</code> &rarr; salin kolom <code>sessionid</code>.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="modal-footer p-3 bg-light border-top border-light-subtle d-flex justify-content-between">
+                    <a href="<?= $baseUrl ?>/extension" class="btn btn-sm btn-link text-secondary text-decoration-none p-0">
+                        <i class="bi bi-puzzle me-1"></i> Pasang Ekstensi Browser
+                    </a>
+                    <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">Tutup</button>
                 </div>
             </div>
         </div>

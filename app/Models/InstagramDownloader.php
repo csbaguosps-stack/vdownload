@@ -32,41 +32,45 @@ class InstagramDownloader implements DownloaderInterface
         }
 
         $sessionId = SettingModel::getInstagramSessionId();
+        $isLoginRequired = false;
 
-        // 1. Attempt GraphQL API (especially effective if sessionid is set)
+        // 1. Primary Strategy: yt-dlp (Native extraction with full metadata & official CDN stream)
         try {
-            $data = $this->extractViaGraphQL($shortcode, $sessionId);
-            if ($data) {
+            $data = $this->extractViaYtDlp($url, $sessionId, $isLoginRequired);
+            if ($data && !empty($data['downloads'])) {
                 return $data;
             }
         } catch (\Throwable $e) {
-            // Continue to next strategy
+            $err = strtolower($e->getMessage());
+            if (str_contains($err, 'login') || str_contains($err, 'private') || str_contains($err, 'checkpoint')) {
+                $isLoginRequired = true;
+            }
         }
 
-        // 2. Attempt Snapsave scraper with JS unpacking (supports photos & carousels)
+        // 2. Secondary Strategy: Snapsave scraper with JS unpacking (supports photos & carousels)
         try {
             $data = $this->extractViaSnapsave($url);
-            if ($data) {
+            if ($data && !empty($data['downloads'])) {
                 return $data;
             }
         } catch (\Throwable $e) {
             // Continue to next strategy
         }
 
-        // 3. Attempt Embed HTML Scraper
+        // 3. Strategy: GraphQL API (Effective when sessionid is provided)
+        try {
+            $data = $this->extractViaGraphQL($shortcode, $sessionId);
+            if ($data && !empty($data['downloads'])) {
+                return $data;
+            }
+        } catch (\Throwable $e) {
+            // Continue to next strategy
+        }
+
+        // 4. Strategy: Embed HTML Scraper
         try {
             $data = $this->extractViaEmbedHtml($shortcode);
-            if ($data) {
-                return $data;
-            }
-        } catch (\Throwable $e) {
-            // Continue to next strategy
-        }
-
-        // 4. Attempt yt-dlp
-        try {
-            $data = $this->extractViaYtDlp($url, $sessionId);
-            if ($data) {
+            if ($data && !empty($data['downloads'])) {
                 return $data;
             }
         } catch (\Throwable $e) {
@@ -74,10 +78,11 @@ class InstagramDownloader implements DownloaderInterface
         }
 
         // 5. If all failed, provide a clear instructional message
-        $hint = empty($sessionId) 
-            ? ' (Tip: Instagram membatasi akses tanpa login. Masukkan cookie "sessionid" di Pengaturan atau gunakan Ekstensi Browser VDownload Pro untuk unduh foto & video langsung dari tab).' 
-            : '';
-        throw new \RuntimeException("Gagal mengambil foto atau video Instagram. Pastikan akun tidak privat dan URL valid{$hint}");
+        if ($isLoginRequired || empty($sessionId)) {
+            throw new \RuntimeException("Instagram membatasi akses video ini dan memerlukan login. Akun Instagram pembuat mungkin bersifat privat atau Instagram meminta verifikasi login. Silakan hubungkan akun / cookie Instagram Anda.");
+        }
+
+        throw new \RuntimeException("Gagal mengambil video atau foto Instagram. Pastikan URL valid dan postingan bersifat publik.");
     }
 
     public function extractShortcode(string $url): ?string
@@ -371,6 +376,7 @@ class InstagramDownloader implements DownloaderInterface
         // 1. Check card-based items (.download-items)
         if (preg_match_all('/<div\s+class="download-items"[^>]*>([\s\S]*?)<\/div>\s*<\/div>/i', $unpacked, $mCards) && !empty($mCards[1])) {
             $itemIdx = 1;
+            $isMultiCard = count($mCards[1]) > 1;
             foreach ($mCards[1] as $cardHtml) {
                 $thumbUrl = '';
                 if (preg_match('/<img[^>]*src="([^"]+)"/i', $cardHtml, $mImg)) {
@@ -385,20 +391,89 @@ class InstagramDownloader implements DownloaderInterface
                     continue;
                 }
 
-                $title = '';
-                if (preg_match('/title="([^"]*)"/i', $cardHtml, $mT)) {
-                    $title = $mT[1];
+                $linkText = '';
+                if (preg_match('/<a\b[^>]*>([\s\S]*?)<\/a>/i', $cardHtml, $mL)) {
+                    $linkText = strip_tags($mL[1]);
                 }
 
-                $isPhoto = (stripos($title, 'Photo') !== false 
-                    || stripos($title, 'Image') !== false 
-                    || stripos($cardHtml, 'icon-dlimage') !== false
-                    || preg_match('/\.(?:jpg|jpeg|png|webp)/i', $itemUrl));
+                $decodedUrl = urldecode($itemUrl);
 
-                if ($isPhoto) {
+                // Video detection: check icon-dlvideo, link text 'Download video', or .mp4 in url/token
+                $isVideo = (
+                    stripos($cardHtml, 'icon-dlvideo') !== false 
+                    || stripos($linkText, 'Download video') !== false 
+                    || stripos($cardHtml, 'Download video') !== false
+                    || stripos($itemUrl, '.mp4') !== false
+                    || stripos($decodedUrl, '.mp4') !== false
+                );
+
+                $isPhoto = !$isVideo && (
+                    stripos($cardHtml, 'icon-dlimage') !== false
+                    || stripos($linkText, 'Download photo') !== false
+                    || stripos($linkText, 'Download image') !== false
+                    || preg_match('/\.(?:jpg|jpeg|png|webp)/i', $itemUrl)
+                    || preg_match('/\.(?:jpg|jpeg|png|webp)/i', $decodedUrl)
+                );
+
+                if ($isVideo) {
+                    if ($isMultiCard) {
+                        $downloads[] = [
+                            'type' => 'video',
+                            'label' => "Unduh Video #{$itemIdx} (Kualitas Full HD)",
+                            'quality' => '⭐ True HD',
+                            'icon' => 'bi-download',
+                            'btn_class' => 'btn-instagram',
+                            'url' => $itemUrl,
+                            'filename' => "instagram_{$cleanId}_video_{$itemIdx}.mp4"
+                        ];
+                    } else {
+                        $downloads[] = [
+                            'type' => 'video',
+                            'label' => "Unduh Video Full HD 1080p - Tanpa Pecah",
+                            'quality' => '⭐ 1080p Full HD',
+                            'icon' => 'bi-badge-hd-fill',
+                            'btn_class' => 'btn-instagram',
+                            'url' => $itemUrl,
+                            'filename' => "instagram_{$cleanId}_1080p.mp4"
+                        ];
+                        $downloads[] = [
+                            'type' => 'video',
+                            'label' => "Unduh Video HD 720p - Kualitas Seimbang",
+                            'quality' => 'HD 720p',
+                            'icon' => 'bi-play-circle-fill',
+                            'btn_class' => 'btn-instagram',
+                            'url' => $itemUrl,
+                            'filename' => "instagram_{$cleanId}_720p.mp4"
+                        ];
+                        $downloads[] = [
+                            'type' => 'video',
+                            'label' => "Unduh Video Hemat Kuota SD 360p - Ringan & Cepat",
+                            'quality' => 'SD 360p (Hemat Kuota)',
+                            'icon' => 'bi-lightning-charge-fill',
+                            'btn_class' => 'btn-download-sd',
+                            'url' => $itemUrl,
+                            'filename' => "instagram_{$cleanId}_360p.mp4"
+                        ];
+                    }
+
+                    if (!empty($thumbUrl)) {
+                        $gallery[] = $thumbUrl;
+                        if (!$isMultiCard) {
+                            $downloads[] = [
+                                'type' => 'image',
+                                'label' => "Unduh Cover / Thumbnail HD (Resolusi Penuh)",
+                                'quality' => 'HD Image',
+                                'icon' => 'bi-image',
+                                'btn_class' => 'btn-download-cover',
+                                'url' => $thumbUrl,
+                                'filename' => "instagram_{$cleanId}_thumb.jpg"
+                            ];
+                        }
+                    }
+                } else {
                     $downloads[] = [
                         'type' => 'image',
-                        'label' => "Unduh Foto #{$itemIdx} HD (Resolusi Penuh)",
+                        'label' => $isMultiCard ? "Unduh Foto #{$itemIdx} HD (Resolusi Penuh)" : "Unduh Foto Instagram HD (Resolusi Penuh)",
                         'quality' => '⭐ HD Foto',
                         'icon' => 'bi-image',
                         'btn_class' => 'btn-instagram',
@@ -409,19 +484,6 @@ class InstagramDownloader implements DownloaderInterface
                     $displayImg = !empty($thumbUrl) ? $thumbUrl : $itemUrl;
                     if (!in_array($displayImg, $gallery, true)) {
                         $gallery[] = $displayImg;
-                    }
-                } else {
-                    $downloads[] = [
-                        'type' => 'video',
-                        'label' => "Unduh Video #{$itemIdx} (Kualitas HD)",
-                        'quality' => '⭐ True HD',
-                        'icon' => 'bi-download',
-                        'btn_class' => 'btn-instagram',
-                        'url' => $itemUrl,
-                        'filename' => "instagram_{$cleanId}_video_{$itemIdx}.mp4"
-                    ];
-                    if (!empty($thumbUrl) && !in_array($thumbUrl, $gallery, true)) {
-                        $gallery[] = $thumbUrl;
                     }
                 }
                 $itemIdx++;
@@ -466,7 +528,20 @@ class InstagramDownloader implements DownloaderInterface
                         continue;
                     }
                     $linkText = strip_tags($l[2] ?? '');
-                    $isPhoto = (stripos($linkText, 'Photo') !== false || stripos($linkText, 'Image') !== false || preg_match('/\.(?:jpg|jpeg|png|webp)/i', $itemUrl));
+                    $decodedUrl = urldecode($itemUrl);
+
+                    $isVideo = (
+                        stripos($linkText, 'Download video') !== false 
+                        || stripos($itemUrl, '.mp4') !== false 
+                        || stripos($decodedUrl, '.mp4') !== false
+                    );
+
+                    $isPhoto = !$isVideo && (
+                        stripos($linkText, 'Photo') !== false 
+                        || stripos($linkText, 'Image') !== false 
+                        || preg_match('/\.(?:jpg|jpeg|png|webp)/i', $itemUrl)
+                        || preg_match('/\.(?:jpg|jpeg|png|webp)/i', $decodedUrl)
+                    );
 
                     if ($isPhoto) {
                         $downloads[] = [
@@ -525,15 +600,17 @@ class InstagramDownloader implements DownloaderInterface
             }
         }
 
+        $isMultiMedia = (!empty($mCards[1]) && count($mCards[1]) > 1) || count($photoUrls) > 1;
+
         return [
             'platform' => 'instagram',
             'platform_name' => 'Instagram',
-            'media_type' => count($downloads) > 1 ? 'carousel' : (!empty($firstVideo) ? 'video' : 'photo'),
+            'media_type' => $isMultiMedia ? 'carousel' : (!empty($firstVideo) ? 'video' : 'photo'),
             'title' => 'Instagram Post',
             'author' => 'Instagram Creator',
             'author_avatar' => '',
             'duration' => null,
-            'resolution' => count($downloads) > 1 ? (count($downloads) . ' Berkas HD') : 'HD',
+            'resolution' => $isMultiMedia ? (count($downloads) . ' Berkas HD') : (!empty($firstVideo) ? 'Full HD' : 'Foto HD'),
             'thumbnail' => !empty($gallery[0]) ? $gallery[0] : '',
             'preview_video' => $firstVideo,
             'gallery' => $gallery,
@@ -695,34 +772,96 @@ class InstagramDownloader implements DownloaderInterface
         return urldecode($res);
     }
 
-    private function extractViaYtDlp(string $url, string $sessionId = ''): ?array
+    private function extractViaYtDlp(string $url, string $sessionId = '', bool &$isLoginRequired = false): ?array
     {
-        $escapedUrl = escapeshellarg($url);
+        $safeUrl = MediaCompressor::escapeArg($url);
         $cookieParam = '';
 
         if (!empty($sessionId)) {
             $cookieFile = Config::getStoragePath('cache' . DIRECTORY_SEPARATOR . 'ig_cookie.txt');
-            file_put_contents($cookieFile, "# Netscape HTTP Cookie File\n.instagram.com\tTRUE\t/\tTRUE\t0\tsessionid\t{$sessionId}\n");
-            $cookieParam = ' --cookies ' . escapeshellarg($cookieFile);
+            $cacheDir = dirname($cookieFile);
+            if (!is_dir($cacheDir)) {
+                @mkdir($cacheDir, 0777, true);
+            }
+            $userId = '';
+            if (preg_match('/^(\d+)(?:%3A|:)/', $sessionId, $mUid)) {
+                $userId = $mUid[1];
+            }
+            $cookieContent = "# Netscape HTTP Cookie File\n";
+            $cookieContent .= ".instagram.com\tTRUE\t/\tTRUE\t2147483647\tsessionid\t{$sessionId}\n";
+            if (!empty($userId)) {
+                $cookieContent .= ".instagram.com\tTRUE\t/\tTRUE\t2147483647\tds_user_id\t{$userId}\n";
+            }
+            @file_put_contents($cookieFile, $cookieContent);
+            $cookieParam = ' --cookies ' . MediaCompressor::escapeArg($cookieFile) . ' --add-header "Cookie: sessionid=' . addslashes($sessionId) . ';"';
         }
 
-        $command = "python -m yt_dlp --skip-download --dump-single-json --no-warnings{$cookieParam} {$escapedUrl} 2>&1";
+        $baseCmd = MediaCompressor::getYtDlpBaseCommand();
+        $command = "{$baseCmd} --skip-download --dump-single-json{$cookieParam} {$safeUrl} 2>&1";
         $output = shell_exec($command);
 
         if (!$output) {
             return null;
         }
 
-        $data = json_decode($output, true);
-        if (!$data) {
+        // Check for login / checkpoint / privacy barriers
+        if (stripos($output, 'login required') !== false 
+            || stripos($output, 'checkpoint') !== false 
+            || stripos($output, 'private') !== false
+            || stripos($output, 'Sign in to check out') !== false) {
+            $isLoginRequired = true;
+        }
+
+        $jsonStart = strpos($output, '{');
+        if ($jsonStart === false) {
             return null;
         }
 
-        $id = $data['id'] ?? substr(md5($url), 0, 8);
-        $title = $data['title'] ?? 'Instagram Post';
-        $cover = $data['thumbnail'] ?? '';
-        $author = $data['uploader'] ?? ($data['channel'] ?? 'Instagram User');
-        $videoUrl = $data['url'] ?? '';
+        $data = json_decode(substr($output, $jsonStart), true);
+        if (!$data || !is_array($data)) {
+            return null;
+        }
+
+        $id = (string)($data['id'] ?? substr(md5($url), 0, 8));
+        $title = (string)($data['title'] ?? '');
+        if (empty($title) || $title === 'Instagram Post' || str_starts_with($title, 'Video by ')) {
+            if (!empty($data['description'])) {
+                $title = mb_substr(trim($data['description']), 0, 160);
+            } else {
+                $title = 'Instagram Post';
+            }
+        }
+        $cover = (string)($data['thumbnail'] ?? '');
+        $author = (string)($data['uploader'] ?? ($data['channel'] ?? ($data['uploader_id'] ?? 'Instagram User')));
+        
+        // Find best video URL (from formats or direct url)
+        $videoUrl = (string)($data['url'] ?? '');
+        if (empty($videoUrl) && !empty($data['formats']) && is_array($data['formats'])) {
+            $bestFormat = null;
+            $bestScore = -1;
+            foreach ($data['formats'] as $fmt) {
+                $fUrl = $fmt['url'] ?? '';
+                $vcodec = $fmt['vcodec'] ?? '';
+                if (!empty($fUrl) && $vcodec !== 'none') {
+                    $height = (int)($fmt['height'] ?? 0);
+                    $tbr = (float)($fmt['tbr'] ?? ($fmt['vbr'] ?? 0));
+                    $score = ($height * 1000) + $tbr;
+                    if ($score > $bestScore) {
+                        $bestScore = $score;
+                        $bestFormat = $fmt;
+                    }
+                }
+            }
+            if ($bestFormat && !empty($bestFormat['url'])) {
+                $videoUrl = $bestFormat['url'];
+            }
+        }
+        if (empty($videoUrl) && !empty($data['requested_downloads'][0]['url'])) {
+            $videoUrl = $data['requested_downloads'][0]['url'];
+        }
+        if (empty($videoUrl) && !empty($data['requested_formats'][0]['url'])) {
+            $videoUrl = $data['requested_formats'][0]['url'];
+        }
 
         $entries = $data['entries'] ?? [];
         $downloads = [];
@@ -747,6 +886,9 @@ class InstagramDownloader implements DownloaderInterface
                         'url' => $eUrl,
                         'filename' => "instagram_{$author}_{$id}_video_{$num}.mp4"
                     ];
+                    if (!empty($eThumb) && !in_array($eThumb, $gallery, true)) {
+                        $gallery[] = $eThumb;
+                    }
                 } else {
                     $targetImg = $eUrl ?: $eThumb;
                     if (!empty($targetImg)) {
@@ -794,6 +936,15 @@ class InstagramDownloader implements DownloaderInterface
             ];
             if (!empty($cover)) {
                 $gallery[] = $cover;
+                $downloads[] = [
+                    'type' => 'image',
+                    'label' => "Unduh Cover / Thumbnail HD (Resolusi Penuh)",
+                    'quality' => 'HD Image',
+                    'icon' => 'bi-image',
+                    'btn_class' => 'btn-download-cover',
+                    'url' => $cover,
+                    'filename' => "instagram_{$id}_thumb.jpg"
+                ];
             }
         } elseif (!empty($cover)) {
             $downloads[] = [
@@ -828,15 +979,21 @@ class InstagramDownloader implements DownloaderInterface
             return null;
         }
 
+        $isCarousel = !empty($entries) && is_array($entries) && count($entries) > 1;
+        $mediaType = $isCarousel ? 'carousel' : (!empty($videoUrl) ? 'video' : 'photo');
+
+        $durationSec = (int)($data['duration'] ?? 0);
+        $durationFormatted = $durationSec > 0 ? gmdate('i:s', $durationSec) : null;
+
         return [
             'platform' => 'instagram',
             'platform_name' => 'Instagram',
-            'media_type' => count($downloads) > 1 ? 'carousel' : (!empty($videoUrl) ? 'video' : 'photo'),
+            'media_type' => $mediaType,
             'title' => $title,
             'author' => $author,
             'author_avatar' => '',
-            'duration' => isset($data['duration']) ? gmdate('i:s', (int)$data['duration']) : null,
-            'resolution' => !empty($videoUrl) ? 'Full HD' : (count($gallery) > 0 ? count($gallery) . ' Foto HD' : 'Foto HD'),
+            'duration' => $durationFormatted,
+            'resolution' => !empty($videoUrl) ? 'Full HD' : ($isCarousel ? count($gallery) . ' Media HD' : 'Foto HD'),
             'thumbnail' => !empty($gallery[0]) ? $gallery[0] : $cover,
             'preview_video' => $videoUrl ?: null,
             'gallery' => $gallery,

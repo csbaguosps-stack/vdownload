@@ -180,6 +180,38 @@ class HomeController extends Controller
         $this->redirect('settings?success=1');
     }
 
+    /**
+     * AJAX endpoint to save or update Instagram session ID
+     */
+    public function saveInstagramSession(): void
+    {
+        $input = json_decode((string)file_get_contents('php://input'), true);
+        $sessionId = trim((string)($input['instagram_sessionid'] ?? ($_POST['instagram_sessionid'] ?? '')));
+
+        SettingModel::save([
+            'instagram_sessionid' => $sessionId
+        ]);
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => empty($sessionId) ? 'Sesi Instagram berhasil dihapus.' : 'Sesi Instagram berhasil disimpan dan siap digunakan!',
+            'has_session' => !empty($sessionId)
+        ]);
+    }
+
+    /**
+     * AJAX endpoint to get Instagram session status
+     */
+    public function getInstagramStatus(): void
+    {
+        $sessionId = SettingModel::getInstagramSessionId();
+        $this->jsonResponse([
+            'success' => true,
+            'has_session' => !empty($sessionId),
+            'masked_session' => !empty($sessionId) ? (substr($sessionId, 0, 8) . '...' . substr($sessionId, -4)) : ''
+        ]);
+    }
+
     public function clearCompressionCache(): void
     {
         MediaCompressor::clearCache();

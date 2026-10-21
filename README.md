@@ -1,6 +1,6 @@
 # 🚀 VDownload Pro - Multi-Platform Video, Photo & Music Downloader
 
-[![Version](https://img.shields.io/badge/Version-v2.4.0-0284c7?style=for-the-badge&logo=git&logoColor=white)](https://github.com/csbaguosps-stack/vdownload)
+[![Version](https://img.shields.io/badge/Version-v2.5.0-0284c7?style=for-the-badge&logo=git&logoColor=white)](https://github.com/csbaguosps-stack/vdownload)
 [![Extension](https://img.shields.io/badge/Extension-v1.6.0-10b981?style=for-the-badge&logo=googlechrome&logoColor=white)](extension/)
 [![PHP Version](https://img.shields.io/badge/PHP-8.2%2B-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net/)
 [![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white)](https://getbootstrap.com/)
@@ -17,7 +17,22 @@ Dilengkapi dengan mesin **Kompresi Cerdas Berakselerasi GPU NVIDIA (NVENC)** aga
 
 ---
 
-## 🆕 Catatan Rilis Versi 2.4.0 (Changelog)
+## 🆕 Catatan Rilis Versi 2.5.0 (Changelog)
+
+* **🛡️ Riwayat Unduhan Berbasis Privasi & Pelacakan Tautan Asal (Link Tracking)**:
+  * **Penyimpanan Nama & Link Saja**: Riwayat unduhan kini hanya mencatat nama/judul unduhan (`title`) dan tautan asli video (`url`) sebagai log aktivitas pelacakan (*tracking*).
+  * **Zero Storage Bloat (File Fisik Tidak Disimpan di Server)**: Berkas media (video/audio/foto) tidak lagi disimpan di server atau di dalam history, menjaga privasi pengguna dan menghemat ruang penyimpanan server 100%.
+  * **Panel Link Tracking Interaktif**: Kartu riwayat dilengkapi panel *Link Asli (Tracking)* dengan tombol **Salin Link** instan ke clipboard dan tombol **Buka** untuk langsung memeriksa atau mengunduh ulang video.
+  * **Integrasi Parameter `?url=` di Beranda**: Navigasi dari riwayat langsung mengisi input unduhan dan menganalisa video secara otomatis tanpa langkah manual.
+* **🧹 Manajemen & Pembersihan Berkas Server Otomatis (Auto-Cleanup & Pruning Engine)**:
+  * **Unlink On Completed Stream**: Berkas video sementara hasil penggabungan (*merge*) atau kompresi otomatis langsung dihapus (`@unlink`) dari server saat transmisi unduhan ke peramban selesai.
+  * **Auto-Pruner Berkas Sementara**: Menambahkan mekanisme `MediaCompressor::pruneOldFiles()` untuk membersihkan berkas sisa/sementara yang berumur lebih dari 5 menit.
+* **🔑 Integrasi Modal Login & Session Cookie Instagram**:
+  * Ditambahkan modal panduan sesi Instagram (`sessionid`) langsung pada antarmuka pengguna untuk mengatasi video Instagram Reels / Postingan yang dibatasi verifikasi login.
+
+---
+
+## 📋 Catatan Rilis Versi 2.4.0 (Changelog)
 
 * **⚡ Turbo Acceleration Engine (Unduhan YouTube & YouTube Music Berkecepatan Tinggi)**:
   * **Integrasi Engine Deno JavaScript Runtime**: Menyelesaikan pemecahan *n-token cipher & JS challenges* YouTube secara otomatis, menghilangkan pembatasan kecepatan (*throttling*) YouTube dari ~50-100 KB/s melonjak drastis hingga **15–27 MB/s**.
@@ -63,7 +78,8 @@ Dilengkapi dengan mesin **Kompresi Cerdas Berakselerasi GPU NVIDIA (NVENC)** aga
 
 ## 📑 Daftar Isi
 
-- [🆕 Catatan Rilis Versi 2.4.0 (Changelog)](#-catatan-rilis-versi-240-changelog)
+- [🆕 Catatan Rilis Versi 2.5.0 (Changelog)](#-catatan-rilis-versi-250-changelog)
+- [📋 Catatan Rilis Versi 2.4.0 (Changelog)](#-catatan-rilis-versi-240-changelog)
 - [🎯 Ringkasan Dukungan Platform](#-ringkasan-dukungan-platform)
 - [✨ Fitur Unggulan](#-fitur-unggulan)
   - [1. 🎬 Multi-Platform Extractor (Video, Foto & Musik)](#1--multi-platform-extractor-video-foto--musik)
