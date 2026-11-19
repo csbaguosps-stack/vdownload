@@ -22,7 +22,68 @@ class MediaCompressor
     private static ?string $cachedAria2Path = null;
 
     /**
-     * Locate FFmpeg binary on the system
+     * Check if running on Windows OS
+     */
+    public static function isWindows(): bool
+    {
+        return strncasecmp(PHP_OS, 'WIN', 3) === 0;
+    }
+
+    /**
+     * Check if shell_exec is available and not disabled in php.ini
+     */
+    public static function isShellExecAvailable(): bool
+    {
+        if (!function_exists('shell_exec')) {
+            return false;
+        }
+        $disabled = (string)ini_get('disable_functions');
+        if (!empty($disabled)) {
+            $list = array_map('trim', explode(',', $disabled));
+            if (in_array('shell_exec', $list, true)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Locate Python binary on the system (python3 on Linux, python on Windows)
+     */
+    public static function getPythonCommand(): string
+    {
+        if (self::isWindows()) {
+            $candidates = [
+                'C:\\Python314\\python.exe',
+                'C:\\Python313\\python.exe',
+                'C:\\Python312\\python.exe',
+                'C:\\Python311\\python.exe',
+                'C:\\Python310\\python.exe'
+            ];
+            foreach ($candidates as $cand) {
+                if (file_exists($cand) && is_executable($cand)) {
+                    return self::escapeArg($cand);
+                }
+            }
+            return 'python';
+        }
+
+        if (self::isShellExecAvailable()) {
+            $py3 = @shell_exec('which python3 2>/dev/null');
+            if (!empty(trim((string)$py3))) {
+                return 'python3';
+            }
+            $py = @shell_exec('which python 2>/dev/null');
+            if (!empty(trim((string)$py))) {
+                return 'python';
+            }
+        }
+
+        return 'python3';
+    }
+
+    /**
+     * Locate FFmpeg binary on the system (Windows & Linux hosting compatible)
      */
     public static function getFfmpegPath(): ?string
     {
@@ -31,13 +92,34 @@ class MediaCompressor
         }
 
         $appRoot = Config::getAppRoot();
-        $candidates = [
-            $appRoot . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'ffmpeg.exe',
-            'C:\\Users\\Baguosps\\AppData\\Roaming\\Python\\Python314\\site-packages\\imageio_ffmpeg\\binaries\\ffmpeg-win-x86_64-v7.1.exe',
-            'C:\\ffmpeg\\bin\\ffmpeg.exe',
-            'C:\\Program Files\\ffmpeg\\bin\\ffmpeg.exe',
-            'C:\\xampp\\ffmpeg\\ffmpeg.exe'
-        ];
+        $isWin = self::isWindows();
+
+        if ($isWin) {
+            $candidates = [
+                $appRoot . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'ffmpeg.exe',
+                'C:\\Users\\Baguosps\\AppData\\Roaming\\Python\\Python314\\site-packages\\imageio_ffmpeg\\binaries\\ffmpeg-win-x86_64-v7.1.exe',
+                'C:\\ffmpeg\\bin\\ffmpeg.exe',
+                'C:\\Program Files\\ffmpeg\\bin\\ffmpeg.exe',
+                'C:\\xampp\\ffmpeg\\ffmpeg.exe'
+            ];
+        } else {
+            $candidates = [
+                $appRoot . '/bin/ffmpeg',
+                '/usr/bin/ffmpeg',
+                '/usr/local/bin/ffmpeg',
+                '/bin/ffmpeg',
+                '/snap/bin/ffmpeg',
+                '/opt/ffmpeg/bin/ffmpeg',
+                '/usr/local/share/ffmpeg/ffmpeg'
+            ];
+            $home = getenv('HOME');
+            if (!empty($home)) {
+                $candidates[] = rtrim($home, '/') . '/bin/ffmpeg';
+            }
+            if (!empty($_SERVER['DOCUMENT_ROOT'])) {
+                $candidates[] = dirname($_SERVER['DOCUMENT_ROOT']) . '/bin/ffmpeg';
+            }
+        }
 
         foreach ($candidates as $path) {
             if (!empty($path) && file_exists($path) && is_executable($path)) {
@@ -46,13 +128,16 @@ class MediaCompressor
             }
         }
 
-        $pathOutput = @shell_exec('where.exe ffmpeg 2>NUL');
-        if (!empty($pathOutput)) {
-            $lines = explode("\n", trim($pathOutput));
-            $found = trim($lines[0]);
-            if (!empty($found) && file_exists($found)) {
-                self::$cachedFfmpegPath = $found;
-                return $found;
+        if (self::isShellExecAvailable()) {
+            $cmd = $isWin ? 'where.exe ffmpeg 2>NUL' : 'which ffmpeg 2>/dev/null || command -v ffmpeg 2>/dev/null';
+            $pathOutput = @shell_exec($cmd);
+            if (!empty($pathOutput)) {
+                $lines = explode("\n", trim($pathOutput));
+                $found = trim($lines[0]);
+                if (!empty($found) && file_exists($found)) {
+                    self::$cachedFfmpegPath = $found;
+                    return $found;
+                }
             }
         }
 
@@ -69,12 +154,27 @@ class MediaCompressor
         }
 
         $appRoot = Config::getAppRoot();
-        $candidates = [
-            $appRoot . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'deno.exe',
-            'C:\\Users\\Baguosps\\.deno\\bin\\deno.exe',
-            'C:\\Program Files\\deno\\deno.exe',
-            'C:\\deno\\deno.exe'
-        ];
+        $isWin = self::isWindows();
+
+        if ($isWin) {
+            $candidates = [
+                $appRoot . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'deno.exe',
+                'C:\\Users\\Baguosps\\.deno\\bin\\deno.exe',
+                'C:\\Program Files\\deno\\deno.exe',
+                'C:\\deno\\deno.exe'
+            ];
+        } else {
+            $candidates = [
+                $appRoot . '/bin/deno',
+                '/usr/bin/deno',
+                '/usr/local/bin/deno',
+                '/root/.deno/bin/deno'
+            ];
+            $home = getenv('HOME');
+            if (!empty($home)) {
+                $candidates[] = rtrim($home, '/') . '/.deno/bin/deno';
+            }
+        }
 
         foreach ($candidates as $path) {
             if (!empty($path) && file_exists($path) && is_executable($path)) {
@@ -83,13 +183,16 @@ class MediaCompressor
             }
         }
 
-        $pathOutput = @shell_exec('where.exe deno 2>NUL');
-        if (!empty($pathOutput)) {
-            $lines = explode("\n", trim($pathOutput));
-            $found = trim($lines[0]);
-            if (!empty($found) && file_exists($found)) {
-                self::$cachedDenoPath = $found;
-                return $found;
+        if (self::isShellExecAvailable()) {
+            $cmd = $isWin ? 'where.exe deno 2>NUL' : 'which deno 2>/dev/null || command -v deno 2>/dev/null';
+            $pathOutput = @shell_exec($cmd);
+            if (!empty($pathOutput)) {
+                $lines = explode("\n", trim($pathOutput));
+                $found = trim($lines[0]);
+                if (!empty($found) && file_exists($found)) {
+                    self::$cachedDenoPath = $found;
+                    return $found;
+                }
             }
         }
 
@@ -106,12 +209,23 @@ class MediaCompressor
         }
 
         $appRoot = Config::getAppRoot();
-        $candidates = [
-            $appRoot . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'aria2c.exe',
-            'C:\\Users\\Baguosps\\AppData\\Local\\Microsoft\\WinGet\\Packages\\aria2.aria2_Microsoft.Winget.Source_8wekyb3d8bbwe\\aria2-1.37.0-win-64bit-build1\\aria2c.exe',
-            'C:\\Program Files\\aria2\\aria2c.exe',
-            'C:\\aria2\\aria2c.exe'
-        ];
+        $isWin = self::isWindows();
+
+        if ($isWin) {
+            $candidates = [
+                $appRoot . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'aria2c.exe',
+                'C:\\Users\\Baguosps\\AppData\\Local\\Microsoft\\WinGet\\Packages\\aria2.aria2_Microsoft.Winget.Source_8wekyb3d8bbwe\\aria2-1.37.0-win-64bit-build1\\aria2c.exe',
+                'C:\\Program Files\\aria2\\aria2c.exe',
+                'C:\\aria2\\aria2c.exe'
+            ];
+        } else {
+            $candidates = [
+                $appRoot . '/bin/aria2c',
+                '/usr/bin/aria2c',
+                '/usr/local/bin/aria2c',
+                '/bin/aria2c'
+            ];
+        }
 
         foreach ($candidates as $path) {
             if (!empty($path) && file_exists($path) && is_executable($path)) {
@@ -120,13 +234,16 @@ class MediaCompressor
             }
         }
 
-        $pathOutput = @shell_exec('where.exe aria2c 2>NUL');
-        if (!empty($pathOutput)) {
-            $lines = explode("\n", trim($pathOutput));
-            $found = trim($lines[0]);
-            if (!empty($found) && file_exists($found)) {
-                self::$cachedAria2Path = $found;
-                return $found;
+        if (self::isShellExecAvailable()) {
+            $cmd = $isWin ? 'where.exe aria2c 2>NUL' : 'which aria2c 2>/dev/null || command -v aria2c 2>/dev/null';
+            $pathOutput = @shell_exec($cmd);
+            if (!empty($pathOutput)) {
+                $lines = explode("\n", trim($pathOutput));
+                $found = trim($lines[0]);
+                if (!empty($found) && file_exists($found)) {
+                    self::$cachedAria2Path = $found;
+                    return $found;
+                }
             }
         }
 
@@ -140,8 +257,9 @@ class MediaCompressor
     {
         $deno = self::getDenoPath();
         $ffmpeg = self::getFfmpegPath();
+        $python = self::getPythonCommand();
 
-        $cmd = 'python -m yt_dlp --no-warnings --no-playlist';
+        $cmd = $python . ' -m yt_dlp --no-warnings --no-update --no-playlist';
 
         if ($deno) {
             $cmd .= ' --js-runtimes ' . self::escapeArg('deno:' . $deno);
@@ -188,12 +306,13 @@ class MediaCompressor
         }
 
         $ffmpeg = self::getFfmpegPath();
-        if (!$ffmpeg) {
+        if (!$ffmpeg || !self::isShellExecAvailable()) {
             self::$hasNvencCache = false;
             return false;
         }
 
-        $test = @shell_exec(self::escapeArg($ffmpeg) . ' -hide_banner -encoders 2>NUL');
+        $nullRedirect = self::isWindows() ? '2>NUL' : '2>/dev/null';
+        $test = @shell_exec(self::escapeArg($ffmpeg) . ' -hide_banner -encoders ' . $nullRedirect);
         self::$hasNvencCache = !empty($test) && str_contains($test, 'h264_nvenc');
         return self::$hasNvencCache;
     }
@@ -291,6 +410,11 @@ class MediaCompressor
      */
     public static function transcodeYtAudio(string $sourceUrl, string $bitrate = '320k', ?string $directAudioUrl = null): ?string
     {
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(0);
+        }
+        @ini_set('max_execution_time', '0');
+
         $cacheDir = self::getCacheDir();
         $cacheKey = md5($sourceUrl . '_yt_audio_' . $bitrate);
         $finalFile = $cacheDir . DIRECTORY_SEPARATOR . $cacheKey . '.mp3';
@@ -357,6 +481,11 @@ class MediaCompressor
      */
     public static function mergeYtVideo(string $sourceUrl, string $maxHeight = '1080'): ?string
     {
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(0);
+        }
+        @ini_set('max_execution_time', '0');
+
         $ffmpeg = self::getFfmpegPath();
         $cacheDir = self::getCacheDir();
         $cacheKey = md5($sourceUrl . '_yt_video_' . $maxHeight);
@@ -369,10 +498,16 @@ class MediaCompressor
         }
 
         $tempTemplate = $cacheDir . DIRECTORY_SEPARATOR . 'tmp_' . $cacheKey . '.%(ext)s';
-        $formatArg = "bestvideo[height<={$maxHeight}]+bestaudio/best[height<={$maxHeight}]/best";
+        $formatArg = "bestvideo[height<={$maxHeight}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={$maxHeight}]+bestaudio/best[height<={$maxHeight}]/best";
         $baseCmd = self::getYtDlpBaseCommand();
 
-        $cmd = $baseCmd . ' -f ' . self::escapeArg($formatArg)
+        $aria2 = self::getAria2Path();
+        $aria2Arg = '';
+        if ($aria2 && file_exists($aria2)) {
+            $aria2Arg = ' --downloader ' . self::escapeArg($aria2) . ' --downloader-args "aria2c:-c -j 8 -x 8 -s 8 -k 1M --allow-overwrite=true"';
+        }
+
+        $cmd = $baseCmd . $aria2Arg . ' -f ' . self::escapeArg($formatArg)
             . ' --merge-output-format mp4 --remux-video mp4'
             . ' --postprocessor-args ' . self::escapeArg('ffmpeg:-threads 0')
             . ' -o ' . self::escapeArg($tempTemplate)

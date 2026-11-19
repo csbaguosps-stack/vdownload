@@ -299,7 +299,8 @@ class TikTokDownloader implements DownloaderInterface
     private function extractViaYtDlp(string $url): array
     {
         $escapedUrl = escapeshellarg($url);
-        $command = "python -m yt_dlp --skip-download --dump-single-json --no-warnings {$escapedUrl} 2>&1";
+        $python = MediaCompressor::getPythonCommand();
+        $command = "{$python} -m yt_dlp --skip-download --dump-single-json --no-warnings {$escapedUrl} 2>&1";
         
         $output = shell_exec($command);
         if (!$output) {

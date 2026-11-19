@@ -120,25 +120,30 @@ $baseUrl = Config::getBaseUrl();
                 </div>
 
                 <!-- Quick Example Links -->
-                <div class="d-flex flex-wrap align-items-center justify-content-center gap-2 mt-3 text-secondary small example-links-bar">
+                <div class="d-flex flex-wrap align-items-center justify-content-center gap-2 mt-3 text-secondary small example-links-bar" id="exampleLinksBar">
                     <span class="opacity-75"><i class="bi bi-lightning-charge-fill text-warning me-1"></i>Coba Contoh:</span>
                     <button type="button" class="btn btn-sample-chip text-danger sample-link" 
+                        data-platform="ytmusic"
                         data-url="https://music.youtube.com/watch?v=sMliuHA4T6I">
                         <i class="bi bi-music-note-beamed me-1"></i>YT Music: 4L Square
                     </button>
                     <button type="button" class="btn btn-sample-chip text-danger sample-link" 
+                        data-platform="youtube"
                         data-url="https://www.youtube.com/watch?v=dQw4w9WgXcQ">
                         <i class="bi bi-youtube me-1"></i>YouTube Video
                     </button>
                     <button type="button" class="btn btn-sample-chip text-shopee-accent sample-link" 
+                        data-platform="shopee"
                         data-url="https://sv.shopee.co.id/share-video/NQJLGKAjCgBWcSEFAAAAAA==?af_cost_value=h5_video_page&c=share_web">
                         <i class="bi bi-bag-check-fill me-1"></i>Shopee Video
                     </button>
                     <button type="button" class="btn btn-sample-chip text-info sample-link" 
+                        data-platform="tiktok"
                         data-url="https://www.tiktok.com/@scout2015/video/6718335390845095173">
                         <i class="bi bi-tiktok me-1"></i>TikTok Video
                     </button>
                     <button type="button" class="btn btn-sample-chip text-danger sample-link" 
+                        data-platform="instagram"
                         data-url="https://www.instagram.com/reel/C8h0YdKP2fC/">
                         <i class="bi bi-instagram me-1"></i>Instagram Reel
                     </button>

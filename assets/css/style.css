@@ -221,13 +221,36 @@ body {
 .platform-tabs-container {
     display: flex;
     justify-content: center;
+    position: relative;
+    max-width: 100%;
 }
 
 .platform-tabs-scroll {
     overflow-x: auto;
+    overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     white-space: nowrap;
     max-width: 100%;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    scroll-behavior: smooth;
+    transition: all 0.25s ease;
+}
+
+.platform-tabs-scroll::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+@media (min-width: 768px) {
+    .platform-tabs-scroll {
+        flex-wrap: wrap;
+        justify-content: center;
+        white-space: normal;
+        overflow: visible;
+        border-radius: 40px !important;
+    }
 }
 
 .btn-platform-tab {
@@ -235,11 +258,12 @@ body {
     color: #475569;
     border: none;
     border-radius: 30px;
-    padding: 6px 16px;
+    padding: 6px 14px;
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     transition: all 0.2s ease;
     flex-shrink: 0;
+    user-select: none;
 }
 
 .btn-platform-tab:hover {
@@ -251,6 +275,18 @@ body {
     background: var(--gradient-primary);
     color: #fff;
     box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+}
+
+.btn-download-option.is-preparing {
+    opacity: 0.85;
+    pointer-events: none;
+    cursor: wait;
+    animation: pulseButton 1.5s infinite;
+}
+
+@keyframes pulseButton {
+    0%, 100% { opacity: 0.85; transform: scale(1); }
+    50% { opacity: 0.65; transform: scale(0.99); }
 }
 
 /* Search Form Input Card */

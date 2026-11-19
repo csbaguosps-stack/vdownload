@@ -150,6 +150,7 @@ class HomeController extends Controller
         $cacheStats = MediaCompressor::getCacheStats();
         $isFfmpegAvailable = MediaCompressor::isAvailable();
         $ffmpegPath = MediaCompressor::getFfmpegPath();
+        $isShellAvailable = MediaCompressor::isShellExecAvailable();
 
         $this->render('home/settings', [
             'pageTitle' => 'Pengaturan Downloader - VDownload Pro',
@@ -157,7 +158,8 @@ class HomeController extends Controller
             'settings' => $settings,
             'cacheStats' => $cacheStats,
             'isFfmpegAvailable' => $isFfmpegAvailable,
-            'ffmpegPath' => $ffmpegPath
+            'ffmpegPath' => $ffmpegPath,
+            'isShellAvailable' => $isShellAvailable
         ]);
     }
 

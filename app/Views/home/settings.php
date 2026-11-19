@@ -156,8 +156,14 @@ $baseUrl = Config::getBaseUrl();
                             <div class="list-group list-group-flush rounded-3 border border-light-subtle overflow-hidden shadow-sm">
                                 <div class="list-group-item bg-white text-dark d-flex justify-content-between align-items-center">
                                     <span><i class="bi bi-cpu-fill me-2 text-danger"></i>FFmpeg Smart Compression Engine</span>
-                                    <span class="badge bg-success-subtle text-success fw-bold">
-                                        <?= !empty($isFfmpegAvailable) ? 'Aktif & Siap (FFmpeg 7.1 x264/AAC)' : 'Tidak Ditemukan' ?>
+                                    <span class="badge <?= !empty($isFfmpegAvailable) ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' ?> fw-bold">
+                                        <?= !empty($isFfmpegAvailable) ? 'Aktif & Siap (' . htmlspecialchars(basename($ffmpegPath ?? 'ffmpeg')) . ')' : 'Tidak Ditemukan' ?>
+                                    </span>
+                                </div>
+                                <div class="list-group-item bg-white text-dark d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-terminal me-2 text-secondary"></i>Izin Eksekusi Shell (shell_exec / proc_open)</span>
+                                    <span class="badge <?= !empty($isShellAvailable) ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' ?> fw-bold">
+                                        <?= !empty($isShellAvailable) ? 'Diizinkan' : 'Dinonaktifkan (disable_functions)' ?>
                                     </span>
                                 </div>
                                 <div class="list-group-item bg-white text-dark d-flex justify-content-between align-items-center">
@@ -181,6 +187,16 @@ $baseUrl = Config::getBaseUrl();
                                     <span class="badge bg-success-subtle text-success fw-bold">Terkoneksi HD</span>
                                 </div>
                             </div>
+
+                            <?php if (empty($isFfmpegAvailable)): ?>
+                            <div class="alert alert-warning border-0 shadow-sm mt-3 mb-0 small">
+                                <div class="fw-bold mb-1 text-dark"><i class="bi bi-info-circle-fill text-warning me-1"></i> Mengapa FFmpeg Tidak Ditemukan di Server Hosting?</div>
+                                <ul class="mb-0 ps-3 text-secondary">
+                                    <li><strong>Server VPS Linux (Ubuntu/Debian):</strong> Jalankan <code>sudo apt update && sudo apt install -y ffmpeg</code> via terminal SSH.</li>
+                                    <li><strong>Shared Hosting / cPanel:</strong> Pastikan fungsi <code>shell_exec</code> / <code>proc_open</code> tidak diblokir pada <em>cPanel &rarr; Select PHP Version &rarr; Options &rarr; disable_functions</em>. Anda juga dapat mengunggah binary static Linux <code>ffmpeg</code> ke folder <code>bin/ffmpeg</code> lalu set izin <code>chmod +x bin/ffmpeg</code>.</li>
+                                </ul>
+                            </div>
+                            <?php endif; ?>
                         </div>
 
                         <!-- Submit Button -->

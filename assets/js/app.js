@@ -108,6 +108,103 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
+     * Trigger browser download using hidden iframe to prevent page navigation or freeze
+     */
+    function triggerBrowserDownload(url) {
+        if (!url) return;
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = url;
+        document.body.appendChild(iframe);
+        setTimeout(() => {
+            try {
+                if (iframe.parentNode) {
+                    iframe.parentNode.removeChild(iframe);
+                }
+            } catch (e) {}
+        }, 60000);
+    }
+
+    /**
+     * Update active platform tab, scroll it smoothly into view, and filter sample chips
+     */
+    function setActivePlatformTab(platform, updatePlaceholder = true) {
+        const plat = platform || 'all';
+        platformTabs.forEach(t => {
+            const isMatch = (t.getAttribute('data-platform') === plat);
+            t.classList.toggle('active', isMatch);
+            if (isMatch) {
+                try {
+                    t.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                } catch (e) {}
+            }
+        });
+
+        filterSampleLinks(plat);
+
+        if (updatePlaceholder) {
+            updatePlaceholderByPlatform(plat);
+        }
+    }
+
+    /**
+     * Filter sample links based on selected platform
+     */
+    function filterSampleLinks(platform) {
+        sampleLinks.forEach(chip => {
+            const chipPlat = chip.getAttribute('data-platform');
+            if (platform === 'all' || !platform) {
+                chip.classList.remove('d-none');
+            } else if (platform === 'youtube' && (chipPlat === 'youtube' || chipPlat === 'ytmusic')) {
+                chip.classList.remove('d-none');
+            } else if (chipPlat === platform) {
+                chip.classList.remove('d-none');
+            } else {
+                chip.classList.add('d-none');
+            }
+        });
+    }
+
+    /**
+     * Update search placeholder text by platform
+     */
+    function updatePlaceholderByPlatform(filter) {
+        const igStatusBar = document.getElementById('igStatusBar');
+        if (filter === 'all') {
+            input.placeholder = 'Tempel tautan video YouTube, YT Music, TikTok, Instagram, atau Shopee di sini...';
+            if (igStatusBar && detectPlatform(input.value.trim()) !== 'instagram') {
+                igStatusBar.classList.add('d-none');
+            }
+        } else if (filter === 'ytmusic') {
+            input.placeholder = 'Tempel tautan YouTube Music (contoh: https://music.youtube.com/watch?v=...)...';
+            if (igStatusBar && detectPlatform(input.value.trim()) !== 'instagram') {
+                igStatusBar.classList.add('d-none');
+            }
+        } else if (filter === 'youtube') {
+            input.placeholder = 'Tempel tautan YouTube video / musik (contoh: https://www.youtube.com/watch?v=...)...';
+            if (igStatusBar && detectPlatform(input.value.trim()) !== 'instagram') {
+                igStatusBar.classList.add('d-none');
+            }
+        } else if (filter === 'tiktok') {
+            input.placeholder = 'Tempel tautan TikTok (contoh: https://vt.tiktok.com/...)...';
+            if (igStatusBar && detectPlatform(input.value.trim()) !== 'instagram') {
+                igStatusBar.classList.add('d-none');
+            }
+        } else if (filter === 'instagram') {
+            input.placeholder = 'Tempel tautan Instagram Reels (contoh: https://www.instagram.com/reel/...)...';
+            if (igStatusBar) {
+                igStatusBar.classList.remove('d-none');
+                checkInstagramStatus();
+            }
+        } else if (filter === 'shopee') {
+            input.placeholder = 'Tempel tautan Shopee Video (contoh: https://sv.shopee.co.id/share-video/...)...';
+            if (igStatusBar && detectPlatform(input.value.trim()) !== 'instagram') {
+                igStatusBar.classList.add('d-none');
+            }
+        }
+    }
+
+    /**
      * Update Input Icon & styling based on input text
      */
     function updateInputVisuals() {
@@ -120,21 +217,26 @@ document.addEventListener('DOMContentLoaded', () => {
             btnClear?.classList.add('d-none');
         }
 
-        // Platform icon detection
+        // Platform icon detection & tab sync
         const platform = detectPlatform(val);
         if (platform === 'ytmusic') {
             platformIcon.innerHTML = '<i class="bi bi-music-note-beamed fs-4 text-danger"></i>';
+            setActivePlatformTab('ytmusic', false);
         } else if (platform === 'youtube') {
             platformIcon.innerHTML = '<i class="bi bi-youtube fs-4 text-danger"></i>';
+            setActivePlatformTab('youtube', false);
         } else if (platform === 'tiktok') {
             platformIcon.innerHTML = '<i class="bi bi-tiktok fs-4 text-info"></i>';
+            setActivePlatformTab('tiktok', false);
         } else if (platform === 'instagram') {
             platformIcon.innerHTML = '<i class="bi bi-instagram fs-4 text-danger"></i>';
+            setActivePlatformTab('instagram', false);
             const igStatusBar = document.getElementById('igStatusBar');
             if (igStatusBar) igStatusBar.classList.remove('d-none');
             checkInstagramStatus();
         } else if (platform === 'shopee') {
             platformIcon.innerHTML = '<i class="bi bi-bag-check-fill fs-4 text-warning"></i>';
+            setActivePlatformTab('shopee', false);
         } else {
             platformIcon.innerHTML = '<i class="bi bi-link-45deg fs-4 text-secondary"></i>';
         }
@@ -153,6 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Clear Button
     btnClear?.addEventListener('click', () => {
         input.value = '';
+        setActivePlatformTab('all', true);
         updateInputVisuals();
         input.focus();
     });
@@ -192,43 +295,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // Platform Tab Filter clicks
     platformTabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            platformTabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-
             const filter = tab.getAttribute('data-platform');
-            const igStatusBar = document.getElementById('igStatusBar');
-            if (filter === 'all') {
-                input.placeholder = 'Tempel tautan video YouTube, YT Music, TikTok, Instagram, atau Shopee di sini...';
-                if (igStatusBar && detectPlatform(input.value.trim()) !== 'instagram') {
-                    igStatusBar.classList.add('d-none');
-                }
-            } else if (filter === 'ytmusic') {
-                input.placeholder = 'Tempel tautan YouTube Music (contoh: https://music.youtube.com/watch?v=...)...';
-                if (igStatusBar && detectPlatform(input.value.trim()) !== 'instagram') {
-                    igStatusBar.classList.add('d-none');
-                }
-            } else if (filter === 'youtube') {
-                input.placeholder = 'Tempel tautan YouTube video / musik (contoh: https://www.youtube.com/watch?v=...)...';
-                if (igStatusBar && detectPlatform(input.value.trim()) !== 'instagram') {
-                    igStatusBar.classList.add('d-none');
-                }
-            } else if (filter === 'tiktok') {
-                input.placeholder = 'Tempel tautan TikTok (contoh: https://vt.tiktok.com/...)...';
-                if (igStatusBar && detectPlatform(input.value.trim()) !== 'instagram') {
-                    igStatusBar.classList.add('d-none');
-                }
-            } else if (filter === 'instagram') {
-                input.placeholder = 'Tempel tautan Instagram Reels (contoh: https://www.instagram.com/reel/...)...';
-                if (igStatusBar) {
-                    igStatusBar.classList.remove('d-none');
-                    checkInstagramStatus();
-                }
-            } else if (filter === 'shopee') {
-                input.placeholder = 'Tempel tautan Shopee Video (contoh: https://sv.shopee.co.id/share-video/...)...';
-                if (igStatusBar && detectPlatform(input.value.trim()) !== 'instagram') {
-                    igStatusBar.classList.add('d-none');
+            setActivePlatformTab(filter, true);
+
+            // If input is empty, update the dynamic icon to reflect tab selection
+            if (!input.value.trim()) {
+                if (filter === 'ytmusic') {
+                    platformIcon.innerHTML = '<i class="bi bi-music-note-beamed fs-4 text-danger"></i>';
+                } else if (filter === 'youtube') {
+                    platformIcon.innerHTML = '<i class="bi bi-youtube fs-4 text-danger"></i>';
+                } else if (filter === 'tiktok') {
+                    platformIcon.innerHTML = '<i class="bi bi-tiktok fs-4 text-info"></i>';
+                } else if (filter === 'instagram') {
+                    platformIcon.innerHTML = '<i class="bi bi-instagram fs-4 text-danger"></i>';
+                } else if (filter === 'shopee') {
+                    platformIcon.innerHTML = '<i class="bi bi-bag-check-fill fs-4 text-warning"></i>';
+                } else {
+                    platformIcon.innerHTML = '<i class="bi bi-link-45deg fs-4 text-secondary"></i>';
                 }
             }
+
             input.focus();
         });
     });
@@ -239,6 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const url = input.value.trim();
         if (!url) {
             showError('Silakan masukkan tautan video terlebih dahulu.');
+            input.focus();
             return;
         }
         processDownload(url);
@@ -418,6 +505,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (Array.isArray(media.downloads) && media.downloads.length > 0) {
             media.downloads.forEach(dl => {
                 const btn = document.createElement('a');
+                let streamUrl = '';
                 if (dl.type === 'zip') {
                     streamUrl = dl.url;
                 } else {
@@ -434,6 +522,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 btn.href = streamUrl;
+                btn.setAttribute('download', dl.filename || 'media');
                 btn.className = `btn btn-download-option ${dl.btn_class || 'btn-gradient-primary'} text-decoration-none`;
                 
                 btn.innerHTML = `
@@ -446,27 +535,50 @@ document.addEventListener('DOMContentLoaded', () => {
                     </span>
                 `;
 
-                // Check if file is large (> 30 MB)
-                const isLarge = isLargeMedia(dl);
-
                 btn.addEventListener('click', (e) => {
-                    if (isLarge && dl.type === 'video') {
+                    if (btn.classList.contains('is-preparing')) {
                         e.preventDefault();
-                        openCompressionDialog(dl, streamUrl);
-                    } else if (dl.type === 'zip') {
+                        return;
+                    }
+
+                    if (dl.type === 'zip') {
                         showToast('📦 Mengemas dan mengunduh paket ZIP semua foto...', 'info');
-                    } else if (dl.type === 'image') {
-                        showToast('🖼️ Mengunduh foto kualitas HD...', 'info');
-                    } else if (dl.type === 'audio') {
-                        showToast('🎵 Mengunduh berkas audio musik...', 'info');
-                    } else if (dl.filename && (dl.filename.includes('360p') || dl.filename.includes('_SD'))) {
-                        showToast('⚡ Mengunduh video hemat kuota SD 360p...', 'info');
-                    } else if (dl.filename && dl.filename.includes('720p')) {
-                        showToast('🎬 Mengunduh video kualitas HD 720p...', 'info');
-                    } else if (dl.filename && (dl.filename.includes('1080p') || dl.filename.includes('MasterHD'))) {
-                        showToast('⭐ Mengunduh video Full HD 1080p...', 'info');
+                        return;
+                    }
+
+                    e.preventDefault();
+
+                    if (dl.needs_merge) {
+                        const originalHtml = btn.innerHTML;
+                        btn.classList.add('is-preparing');
+                        btn.innerHTML = `
+                            <div class="d-flex align-items-center gap-2 text-start flex-grow-1 min-w-0 me-2">
+                                <span class="spinner-border spinner-border-sm text-light flex-shrink-0" role="status"></span>
+                                <span class="btn-download-title text-break">Menyiapkan & Menggabungkan Berkas HD...</span>
+                            </div>
+                            <span class="badge download-pill-badge flex-shrink-0">
+                                Memproses
+                            </span>
+                        `;
+
+                        showToast('🎬 Menggabungkan video & audio kualitas tinggi, unduhan segera dimulai...', 'info');
+                        triggerBrowserDownload(streamUrl);
+
+                        setTimeout(() => {
+                            btn.classList.remove('is-preparing');
+                            btn.innerHTML = originalHtml;
+                        }, 10000);
                     } else {
-                        showToast('⚡ Mengunduh berkas...', 'info');
+                        if (dl.type === 'image') {
+                            showToast('🖼️ Mengunduh foto kualitas HD...', 'success');
+                        } else if (dl.type === 'audio') {
+                            showToast('🎵 Mengunduh berkas audio musik...', 'success');
+                        } else if (dl.filename && (dl.filename.includes('360p') || dl.filename.includes('_SD'))) {
+                            showToast('⚡ Mengunduh video SD 360p (Instan)...', 'success');
+                        } else {
+                            showToast('⚡ Mengunduh berkas langsung...', 'success');
+                        }
+                        triggerBrowserDownload(streamUrl);
                     }
                 });
 
@@ -676,8 +788,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (btnSkip) {
             btnSkip.onclick = () => {
                 compressionModalInstance?.hide();
-                showToast('📥 Mengunduh berkas asli langsung...', 'info');
-                window.location.href = `${rawStreamUrl}&raw=1&compress=0`;
+                showToast('📥 Mengunduh berkas langsung...', 'info');
+                window.location.href = rawStreamUrl;
             };
         }
 
@@ -691,8 +803,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (progressTimer) clearInterval(progressTimer);
                 if (elapsedTimer) clearInterval(elapsedTimer);
                 compressionModalInstance?.hide();
-                showToast('📥 Mengunduh berkas asli langsung...', 'info');
-                window.location.href = `${rawStreamUrl}&raw=1&compress=0`;
+                showToast('📥 Mengunduh berkas langsung...', 'info');
+                window.location.href = rawStreamUrl;
             };
         }
 
@@ -745,6 +857,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         name: dl.filename || 'video.mp4',
                         type: dl.type || 'video',
                         audio_url: dl.audio_url || '',
+                        source_url: dl.source_url || (currentMediaData ? (currentMediaData.source_url || currentMediaData.url) : ''),
                         size_bytes: dl.size_bytes || 0
                     }),
                     signal: compressionAbortController.signal
