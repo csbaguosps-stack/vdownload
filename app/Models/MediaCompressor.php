@@ -477,6 +477,71 @@ class MediaCompressor
     }
 
     /**
+     * Ultra-fast direct stream merge of separate video and audio URLs using FFmpeg stream copy (takes ~1-2 seconds!)
+     */
+    public static function fastMergeVideoAudio(string $videoUrl, string $audioUrl, string $cacheKey = ''): ?string
+    {
+        if (empty($videoUrl) || empty($audioUrl)) {
+            return null;
+        }
+
+        $ffmpeg = self::getFfmpegPath();
+        if (!$ffmpeg) {
+            return null;
+        }
+
+        $cacheDir = self::getCacheDir();
+        if (empty($cacheKey)) {
+            $cacheKey = md5($videoUrl . '_' . $audioUrl);
+        }
+        $finalFile = $cacheDir . DIRECTORY_SEPARATOR . $cacheKey . '.mp4';
+
+        if (file_exists($finalFile) && filesize($finalFile) > 10240) {
+            if (time() - filemtime($finalFile) < 172800) {
+                return $finalFile;
+            }
+        }
+
+        $tempFile = $cacheDir . DIRECTORY_SEPARATOR . 'tmp_' . $cacheKey . '.mp4';
+        @unlink($tempFile);
+
+        // Attempt 1: Ultra-fast direct stream copy (no re-encoding, ~1-2 seconds)
+        $cmd1 = self::escapeArg($ffmpeg)
+            . ' -y -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" -referer "https://www.youtube.com/"'
+            . ' -i ' . self::escapeArg($videoUrl)
+            . ' -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" -referer "https://www.youtube.com/"'
+            . ' -i ' . self::escapeArg($audioUrl)
+            . ' -c copy -movflags +faststart '
+            . self::escapeArg($tempFile) . ' 2>&1';
+
+        @shell_exec($cmd1);
+
+        if (file_exists($tempFile) && filesize($tempFile) > 10240) {
+            @rename($tempFile, $finalFile);
+            return $finalFile;
+        }
+
+        // Attempt 2: Audio transcode to AAC if video and audio container formats were incompatible
+        @unlink($tempFile);
+        $cmd2 = self::escapeArg($ffmpeg)
+            . ' -y -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" -referer "https://www.youtube.com/"'
+            . ' -i ' . self::escapeArg($videoUrl)
+            . ' -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" -referer "https://www.youtube.com/"'
+            . ' -i ' . self::escapeArg($audioUrl)
+            . ' -c:v copy -c:a aac -b:a 192k -movflags +faststart '
+            . self::escapeArg($tempFile) . ' 2>&1';
+
+        @shell_exec($cmd2);
+
+        if (file_exists($tempFile) && filesize($tempFile) > 10240) {
+            @rename($tempFile, $finalFile);
+            return $finalFile;
+        }
+
+        return null;
+    }
+
+    /**
      * Merge YouTube / YouTube Music video and audio streams into single MP4 with audio (1080p, 720p, 360p)
      */
     public static function mergeYtVideo(string $sourceUrl, string $maxHeight = '1080'): ?string

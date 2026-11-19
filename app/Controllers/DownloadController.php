@@ -275,6 +275,16 @@ class DownloadController extends Controller
                     || (!empty($audioUrl) && $audioUrl !== $fileUrl);
 
                 if ($shouldMerge) {
+                    // STEP A: Instant direct stream merge using FFmpeg stream copy (takes ~1-2 seconds!)
+                    if (!empty($audioUrl) && !empty($fileUrl) && $audioUrl !== $fileUrl) {
+                        $fastFile = MediaCompressor::fastMergeVideoAudio($fileUrl, $audioUrl, md5($sourceUrl . '_fast_' . $maxH));
+                        if ($fastFile && file_exists($fastFile) && filesize($fastFile) > 10240) {
+                            $this->streamLocalFile($fastFile, $fileName, 'video/mp4', $isHead);
+                            exit;
+                        }
+                    }
+
+                    // STEP B: Fallback to yt-dlp dedicated merge if direct stream URLs were not provided or expired
                     $targetFile = MediaCompressor::mergeYtVideo($sourceUrl, $maxH);
                     if ($targetFile && file_exists($targetFile) && filesize($targetFile) > 1024) {
                         $this->streamLocalFile($targetFile, $fileName, 'video/mp4', $isHead);

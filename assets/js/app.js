@@ -108,21 +108,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Trigger browser download using hidden iframe to prevent page navigation or freeze
+     * Trigger browser download reliably via native user-gesture anchor navigation
      */
-    function triggerBrowserDownload(url) {
+    function triggerBrowserDownload(url, filename = '') {
         if (!url) return;
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = url;
-        document.body.appendChild(iframe);
-        setTimeout(() => {
-            try {
-                if (iframe.parentNode) {
-                    iframe.parentNode.removeChild(iframe);
-                }
-            } catch (e) {}
-        }, 60000);
+        try {
+            const link = document.createElement('a');
+            link.href = url;
+            if (filename) {
+                link.setAttribute('download', filename);
+            }
+            link.setAttribute('target', '_self');
+            document.body.appendChild(link);
+            link.click();
+            setTimeout(() => {
+                try {
+                    if (link.parentNode) link.parentNode.removeChild(link);
+                } catch (e) {}
+            }, 1000);
+        } catch (e) {
+            window.location.assign(url);
+        }
     }
 
     /**
@@ -548,26 +554,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     e.preventDefault();
 
+                    const originalHtml = btn.innerHTML;
+                    btn.classList.add('is-preparing');
+
                     if (dl.needs_merge) {
-                        const originalHtml = btn.innerHTML;
-                        btn.classList.add('is-preparing');
                         btn.innerHTML = `
                             <div class="d-flex align-items-center gap-2 text-start flex-grow-1 min-w-0 me-2">
                                 <span class="spinner-border spinner-border-sm text-light flex-shrink-0" role="status"></span>
-                                <span class="btn-download-title text-break">Menyiapkan & Menggabungkan Berkas HD...</span>
+                                <span class="btn-download-title text-break">Menyiapkan & Mengunduh Berkas HD...</span>
                             </div>
                             <span class="badge download-pill-badge flex-shrink-0">
-                                Memproses
+                                Mengunduh...
                             </span>
                         `;
 
                         showToast('🎬 Menggabungkan video & audio kualitas tinggi, unduhan segera dimulai...', 'info');
-                        triggerBrowserDownload(streamUrl);
+                        triggerBrowserDownload(streamUrl, dl.filename || '');
 
                         setTimeout(() => {
                             btn.classList.remove('is-preparing');
                             btn.innerHTML = originalHtml;
-                        }, 10000);
+                        }, 5000);
                     } else {
                         if (dl.type === 'image') {
                             showToast('🖼️ Mengunduh foto kualitas HD...', 'success');
@@ -580,7 +587,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         } else {
                             showToast('⚡ Mengunduh berkas langsung...', 'success');
                         }
-                        triggerBrowserDownload(streamUrl);
+                        triggerBrowserDownload(streamUrl, dl.filename || '');
+
+                        setTimeout(() => {
+                            btn.classList.remove('is-preparing');
+                            btn.innerHTML = originalHtml;
+                        }, 2500);
                     }
                 });
 
