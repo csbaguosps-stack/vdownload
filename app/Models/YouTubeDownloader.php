@@ -178,11 +178,16 @@ class YouTubeDownloader implements DownloaderInterface
         $downloads = [];
 
         // 1. Separate Progressive (Video+Audio combined) vs DASH Streams
+        $prog1080 = null;
         $prog720 = null;
+        $prog480 = null;
         $prog360 = null;
+
         $dash1080 = null;
         $dash720 = null;
+        $dash480 = null;
         $dash360 = null;
+
         $bestAudio = null;
         $bestM4a = null;
 
@@ -191,7 +196,6 @@ class YouTubeDownloader implements DownloaderInterface
             $acodec = $f['acodec'] ?? 'none';
             $height = (int)($f['height'] ?? 0);
             $width = (int)($f['width'] ?? 0);
-            $effectiveH = ($height > 0) ? $height : (int)round($width * 9 / 16);
             $ext = $f['ext'] ?? 'mp4';
             $urlStream = $f['url'] ?? '';
 
@@ -201,14 +205,25 @@ class YouTubeDownloader implements DownloaderInterface
             $hasAudio = ($acodec !== 'none');
             $isAvc = str_contains(strtolower($vcodec), 'avc') || str_contains(strtolower($vcodec), 'h264');
 
+            // Normalized resolution dimension: short edge (works for landscape 16:9 and portrait 9:16 Shorts)
+            $resP = ($width > 0 && $height > 0) ? min($width, $height) : $height;
+
             // Progressive: both audio and video in single stream (INSTANT DIRECT DOWNLOAD - NO MERGE!)
             if ($hasVideo && $hasAudio) {
-                if ($effectiveH >= 720) {
-                    if (!$prog720 || $effectiveH > ($prog720['height'] ?? 0)) {
+                if ($resP >= 1080) {
+                    if (!$prog1080 || $resP > (($prog1080['width'] ?? 0) > 0 ? min($prog1080['width'], $prog1080['height']) : ($prog1080['height'] ?? 0))) {
+                        $prog1080 = $f;
+                    }
+                } elseif ($resP >= 720) {
+                    if (!$prog720 || $resP > (($prog720['width'] ?? 0) > 0 ? min($prog720['width'], $prog720['height']) : ($prog720['height'] ?? 0))) {
                         $prog720 = $f;
                     }
-                } elseif ($effectiveH >= 360) {
-                    if (!$prog360 || $effectiveH > ($prog360['height'] ?? 0)) {
+                } elseif ($resP >= 480) {
+                    if (!$prog480 || $resP > (($prog480['width'] ?? 0) > 0 ? min($prog480['width'], $prog480['height']) : ($prog480['height'] ?? 0))) {
+                        $prog480 = $f;
+                    }
+                } elseif ($resP >= 360) {
+                    if (!$prog360 || $resP > (($prog360['width'] ?? 0) > 0 ? min($prog360['width'], $prog360['height']) : ($prog360['height'] ?? 0))) {
                         $prog360 = $f;
                     }
                 }
@@ -216,22 +231,26 @@ class YouTubeDownloader implements DownloaderInterface
 
             // DASH Video-only stream
             if ($hasVideo && !$hasAudio) {
-                if ($effectiveH >= 1080) {
+                if ($resP >= 1080) {
                     if (!$dash1080 || ($ext === 'mp4' && $isAvc) || (($dash1080['ext'] ?? '') !== 'mp4')) {
                         $dash1080 = $f;
                     }
-                } elseif ($effectiveH >= 720 && $effectiveH < 1080) {
+                } elseif ($resP >= 720) {
                     if (!$dash720 || ($ext === 'mp4' && $isAvc) || (($dash720['ext'] ?? '') !== 'mp4')) {
                         $dash720 = $f;
                     }
-                } elseif ($effectiveH >= 360 && $effectiveH < 720) {
+                } elseif ($resP >= 480) {
+                    if (!$dash480 || ($ext === 'mp4' && $isAvc) || (($dash480['ext'] ?? '') !== 'mp4')) {
+                        $dash480 = $f;
+                    }
+                } elseif ($resP >= 360) {
                     if (!$dash360 || ($ext === 'mp4' && $isAvc) || (($dash360['ext'] ?? '') !== 'mp4')) {
                         $dash360 = $f;
                     }
                 }
             }
 
-            // Audio only stream
+            // Audio only stream (strictly NO video to prevent bloated filesize!)
             if (!$hasVideo && $hasAudio) {
                 $abr = (float)($f['abr'] ?? 0);
                 if (!$bestAudio || $abr > (float)($bestAudio['abr'] ?? 0)) {
@@ -246,16 +265,18 @@ class YouTubeDownloader implements DownloaderInterface
         }
 
         // Fallbacks
-        $bestProgressive = $prog720 ?: $prog360;
+        $bestProgressive = $prog720 ?: ($prog480 ?: $prog360);
         if (!$bestAudio && $bestProgressive) {
             $bestAudio = $bestProgressive;
         }
-        if (!$bestM4a && $bestAudio) {
+        // ONLY fallback M4A if bestAudio is strictly audio-only (never inherit video filesize!)
+        if (!$bestM4a && $bestAudio && (!isset($bestAudio['vcodec']) || $bestAudio['vcodec'] === 'none')) {
             $bestM4a = $bestAudio;
         }
 
-        $f1080 = $dash1080;
+        $f1080 = $dash1080 ?: $prog1080;
         $f720 = $prog720 ?: $dash720;
+        $f480 = $prog480 ?: $dash480;
         $f360 = $prog360 ?: $dash360;
 
         $filePrefix = $isMusic ? 'ytmusic' : 'youtube';
@@ -319,11 +340,11 @@ class YouTubeDownloader implements DownloaderInterface
             }
 
             // Primary 4: HD 720p Music Video
-            $target720 = $bestProgressive ?: ($f720 ?: ($f1080 ?: $f360));
+            $target720 = $prog720 ?: ($dash720 ?: ($f1080 ?: ($f480 ?: $f360)));
             if ($target720) {
                 $sz720 = (int)($target720['filesize'] ?? ($target720['filesize_approx'] ?? 0));
                 $sz720Formatted = $sz720 > 0 ? round($sz720 / (1024 * 1024), 1) . ' MB' : '';
-                $isProg720 = ($target720 === $bestProgressive);
+                $isProg720 = ($target720 === $prog720);
                 $downloads[] = [
                     'type' => 'video',
                     'label' => 'Unduh Video Musik HD 720p (MP4 Cerdas + Audio)',
@@ -340,12 +361,34 @@ class YouTubeDownloader implements DownloaderInterface
                 ];
             }
 
-            // Primary 5: SD 360p Music Video (Hemat Kuota)
-            $target360 = $f360 ?: ($bestProgressive ?: ($f720 ?: $f1080));
+            // Primary 5: SD 560p / 480p Music Video
+            $target480 = $prog480 ?: ($dash480 ?: ($prog360 ?: $dash360));
+            if ($target480) {
+                $sz480 = (int)($target480['filesize'] ?? ($target480['filesize_approx'] ?? 0));
+                $sz480Formatted = $sz480 > 0 ? round($sz480 / (1024 * 1024), 1) . ' MB' : '';
+                $isProg480 = ($target480 === $prog480);
+                $downloads[] = [
+                    'type' => 'video',
+                    'label' => 'Unduh Video Musik SD 560p / 480p (MP4 Standar Ringan + Audio)',
+                    'quality' => '⚡ SD 560p / 480p' . ($sz480Formatted ? " • {$sz480Formatted}" : ''),
+                    'icon' => 'bi-lightning-charge-fill',
+                    'btn_class' => 'btn-download-sd',
+                    'url' => $target480['url'],
+                    'audio_url' => $isProg480 ? null : ($bestAudio ? $bestAudio['url'] : null),
+                    'source_url' => $isProg480 ? null : $url,
+                    'needs_merge' => !$isProg480,
+                    'size_bytes' => $sz480,
+                    'size_formatted' => $sz480Formatted,
+                    'filename' => "{$filePrefix}_{$cleanAuthor}_{$cleanTitle}_480p.mp4"
+                ];
+            }
+
+            // Primary 6: SD 360p Music Video (Hemat Kuota)
+            $target360 = $prog360 ?: ($dash360 ?: ($f480 ?: $bestProgressive));
             if ($target360) {
                 $sz360 = (int)($target360['filesize'] ?? ($target360['filesize_approx'] ?? 0));
                 $sz360Formatted = $sz360 > 0 ? round($sz360 / (1024 * 1024), 1) . ' MB' : '';
-                $isProg360 = ($target360 === $bestProgressive || (isset($target360['acodec']) && $target360['acodec'] !== 'none'));
+                $isProg360 = ($target360 === $prog360 || (isset($target360['acodec']) && $target360['acodec'] !== 'none'));
                 $downloads[] = [
                     'type' => 'video',
                     'label' => 'Unduh Video Musik SD 360p (MP4 Hemat Kuota + Audio)',
@@ -362,7 +405,7 @@ class YouTubeDownloader implements DownloaderInterface
                 ];
             }
 
-            // Primary 6: Album Art / Cover HD
+            // Primary 7: Album Art / Cover HD
             if (!empty($thumbnail)) {
                 $downloads[] = [
                     'type' => 'image',
@@ -376,17 +419,19 @@ class YouTubeDownloader implements DownloaderInterface
             }
         } else {
             // === REGULAR YOUTUBE VIDEO DOWNLOAD OPTIONS ===
-            // Option 1: Full HD 1080p
-            if ($dash1080) {
-                $sz1080 = (int)($dash1080['filesize'] ?? ($dash1080['filesize_approx'] ?? 0));
-                $sz1080Formatted = $sz1080 > 0 ? round($sz1080 / (1024 * 1024), 1) . ' MB' : '';
+            // Option 1: Full HD 1080p (Available on all videos, with automatic smart HQ merge fallback)
+            $target1080 = $dash1080 ?: ($prog1080 ?: ($dash720 ?: ($prog720 ?: $bestProgressive)));
+            if ($target1080) {
+                $isNative1080 = ($dash1080 || $prog1080);
+                $sz1080 = (int)($target1080['filesize'] ?? ($target1080['filesize_approx'] ?? 0));
+                $sz1080Formatted = ($sz1080 > 0 && $isNative1080) ? round($sz1080 / (1024 * 1024), 1) . ' MB' : '';
                 $downloads[] = [
                     'type' => 'video',
                     'label' => 'Unduh Video Full HD 1080p (MP4 Jernih + Audio)',
-                    'quality' => '⭐ 1080p Full HD' . ($sz1080Formatted ? " • {$sz1080Formatted}" : ''),
+                    'quality' => '⭐ 1080p Full HD' . ($sz1080Formatted ? " • {$sz1080Formatted}" : ($isNative1080 ? '' : ' • HQ Super Jernih')),
                     'icon' => 'bi-badge-hd-fill',
                     'btn_class' => 'btn-youtube-hd',
-                    'url' => $dash1080['url'],
+                    'url' => $target1080['url'],
                     'audio_url' => $bestAudio ? $bestAudio['url'] : null,
                     'source_url' => $url,
                     'needs_merge' => true,
@@ -414,8 +459,9 @@ class YouTubeDownloader implements DownloaderInterface
                     'size_formatted' => $sz720Formatted,
                     'filename' => "youtube_{$cleanAuthor}_{$cleanId}_720p.mp4"
                 ];
-            } elseif ($dash720) {
-                $sz720 = (int)($dash720['filesize'] ?? ($dash720['filesize_approx'] ?? 0));
+            } elseif ($dash720 || $target1080) {
+                $target720 = $dash720 ?: $target1080;
+                $sz720 = (int)($target720['filesize'] ?? ($target720['filesize_approx'] ?? 0));
                 $sz720Formatted = $sz720 > 0 ? round($sz720 / (1024 * 1024), 1) . ' MB' : '';
                 $downloads[] = [
                     'type' => 'video',
@@ -423,7 +469,7 @@ class YouTubeDownloader implements DownloaderInterface
                     'quality' => 'HD 720p' . ($sz720Formatted ? " • {$sz720Formatted}" : ''),
                     'icon' => 'bi-play-circle-fill',
                     'btn_class' => 'btn-youtube',
-                    'url' => $dash720['url'],
+                    'url' => $target720['url'],
                     'audio_url' => $bestAudio ? $bestAudio['url'] : null,
                     'source_url' => $url,
                     'needs_merge' => true,
@@ -433,7 +479,47 @@ class YouTubeDownloader implements DownloaderInterface
                 ];
             }
 
-            // Option 3: Standard SD 360p (Format 18 progressive: 100% direct instant stream!)
+            // Option 3: SD 560p / 480p (Standard Definition - Hemat Kuota & Tetap Jelas)
+            if ($prog480) {
+                $sz480 = (int)($prog480['filesize'] ?? ($prog480['filesize_approx'] ?? 0));
+                $sz480Formatted = $sz480 > 0 ? round($sz480 / (1024 * 1024), 1) . ' MB' : '';
+                $downloads[] = [
+                    'type' => 'video',
+                    'label' => 'Unduh Video SD 560p / 480p (MP4 Standar Ringan Langsung + Audio)',
+                    'quality' => '⚡ SD 560p / 480p (Instan)' . ($sz480Formatted ? " • {$sz480Formatted}" : ''),
+                    'icon' => 'bi-lightning-charge-fill',
+                    'btn_class' => 'btn-download-sd',
+                    'url' => $prog480['url'],
+                    'audio_url' => null,
+                    'source_url' => null,
+                    'needs_merge' => false,
+                    'size_bytes' => $sz480,
+                    'size_formatted' => $sz480Formatted,
+                    'filename' => "youtube_{$cleanAuthor}_{$cleanId}_480p.mp4"
+                ];
+            } else {
+                $target480 = $dash480 ?: ($prog360 ?: ($dash360 ?: $target1080));
+                if ($target480) {
+                    $sz480 = (int)($target480['filesize'] ?? ($target480['filesize_approx'] ?? 0));
+                    $sz480Formatted = $sz480 > 0 ? round($sz480 / (1024 * 1024), 1) . ' MB' : '';
+                    $downloads[] = [
+                        'type' => 'video',
+                        'label' => 'Unduh Video SD 560p / 480p (MP4 Standar Ringan + Audio)',
+                        'quality' => '⚡ SD 560p / 480p' . ($sz480Formatted ? " • {$sz480Formatted}" : ''),
+                        'icon' => 'bi-lightning-charge-fill',
+                        'btn_class' => 'btn-download-sd',
+                        'url' => $target480['url'],
+                        'audio_url' => $bestAudio ? $bestAudio['url'] : null,
+                        'source_url' => $url,
+                        'needs_merge' => true,
+                        'size_bytes' => $sz480,
+                        'size_formatted' => $sz480Formatted,
+                        'filename' => "youtube_{$cleanAuthor}_{$cleanId}_480p.mp4"
+                    ];
+                }
+            }
+
+            // Option 4: Standard SD 360p (Format 18 progressive: 100% direct instant stream!)
             if ($prog360) {
                 $sz360 = (int)($prog360['filesize'] ?? ($prog360['filesize_approx'] ?? 0));
                 $sz360Formatted = $sz360 > 0 ? round($sz360 / (1024 * 1024), 1) . ' MB' : '';
@@ -470,7 +556,7 @@ class YouTubeDownloader implements DownloaderInterface
                 ];
             }
 
-            // Option 4: Audio Format Asli M4A / AAC (Direct Playable - Instant Download)
+            // Option 5: Audio Format Asli M4A / AAC (Direct Playable - Instant Download)
             if ($bestM4a) {
                 $szM4a = (int)($bestM4a['filesize'] ?? ($bestM4a['filesize_approx'] ?? 0));
                 $szM4aFormatted = $szM4a > 0 ? round($szM4a / (1024 * 1024), 1) . ' MB' : '';
@@ -489,7 +575,7 @@ class YouTubeDownloader implements DownloaderInterface
                 ];
             }
 
-            // Option 5: Audio Musik MP3 (Auto-Compressed HQ)
+            // Option 6: Audio Musik MP3 (Auto-Compressed HQ)
             if ($bestAudio) {
                 $downloads[] = [
                     'type' => 'audio',
@@ -504,7 +590,7 @@ class YouTubeDownloader implements DownloaderInterface
                 ];
             }
 
-            // Option 6: Cover / Thumbnail HD
+            // Option 7: Cover / Thumbnail HD
             if (!empty($thumbnail)) {
                 $downloads[] = [
                     'type' => 'image',

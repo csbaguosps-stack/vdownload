@@ -50,7 +50,7 @@ $baseUrl = Config::getBaseUrl();
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <!-- Custom CSS (Modern White & Blue Theme) -->
-    <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/style.css?v=2.2">
+    <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/style.css?v=2.3">
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='25' fill='%232563eb'/><path d='M35 25 L75 50 L35 75 Z' fill='%23ffffff'/></svg>">

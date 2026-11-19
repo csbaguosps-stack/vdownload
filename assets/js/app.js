@@ -573,6 +573,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             showToast('🖼️ Mengunduh foto kualitas HD...', 'success');
                         } else if (dl.type === 'audio') {
                             showToast('🎵 Mengunduh berkas audio musik...', 'success');
+                        } else if (dl.filename && (dl.filename.includes('480p') || dl.filename.includes('560p'))) {
+                            showToast('⚡ Mengunduh video SD 560p/480p (Instan)...', 'success');
                         } else if (dl.filename && (dl.filename.includes('360p') || dl.filename.includes('_SD'))) {
                             showToast('⚡ Mengunduh video SD 360p (Instan)...', 'success');
                         } else {

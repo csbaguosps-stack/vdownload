@@ -271,8 +271,8 @@ class MediaCompressor
             $cmd .= ' --ffmpeg-location ' . self::escapeArg($ffmpeg);
         }
 
-        // Acceleration flags: Android+Web client fallback, 5 concurrent fragments, 10MB chunk size, 1MB buffer, no check certs
-        $cmd .= ' --extractor-args "youtube:player_client=android,web" --concurrent-fragments 5 --http-chunk-size 10M --buffer-size 1024k --no-check-certificates';
+        // Acceleration flags: 5 concurrent fragments, 10MB chunk size, 1MB buffer, no check certs
+        $cmd .= ' --concurrent-fragments 5 --http-chunk-size 10M --buffer-size 1024k --no-check-certificates';
 
         return $cmd;
     }
@@ -498,7 +498,7 @@ class MediaCompressor
         }
 
         $tempTemplate = $cacheDir . DIRECTORY_SEPARATOR . 'tmp_' . $cacheKey . '.%(ext)s';
-        $formatArg = "bestvideo[height<={$maxHeight}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={$maxHeight}]+bestaudio/best[height<={$maxHeight}]/best";
+        $formatArg = "bestvideo[width<={$maxHeight}][height>{$maxHeight}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={$maxHeight}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[width<={$maxHeight}][height>{$maxHeight}]+bestaudio/bestvideo[height<={$maxHeight}]+bestaudio/best";
         $baseCmd = self::getYtDlpBaseCommand();
 
         $aria2 = self::getAria2Path();

@@ -261,6 +261,8 @@ class DownloadController extends Controller
                 $maxH = '1080';
                 if (str_contains($fileName, '360p') || str_contains($fileName, '_SD')) {
                     $maxH = '360';
+                } elseif (str_contains($fileName, '480p') || str_contains($fileName, '560p')) {
+                    $maxH = '480';
                 } elseif (str_contains($fileName, '720p')) {
                     $maxH = '720';
                 } elseif (str_contains($fileName, '1080p')) {
