@@ -271,8 +271,8 @@ class MediaCompressor
             $cmd .= ' --ffmpeg-location ' . self::escapeArg($ffmpeg);
         }
 
-        // Acceleration flags: 5 concurrent fragments, 10MB chunk size, 1MB buffer, no check certs
-        $cmd .= ' --concurrent-fragments 5 --http-chunk-size 10M --buffer-size 1024k --no-check-certificates';
+        // Acceleration flags: Android+Web client fallback, 5 concurrent fragments, 10MB chunk size, 1MB buffer, no check certs
+        $cmd .= ' --extractor-args "youtube:player_client=android,web" --concurrent-fragments 5 --http-chunk-size 10M --buffer-size 1024k --no-check-certificates';
 
         return $cmd;
     }

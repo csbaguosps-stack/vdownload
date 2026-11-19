@@ -25,11 +25,19 @@ class YouTubeDownloader implements DownloaderInterface
 
     public function extract(string $url): array
     {
+        // Normalize YouTube URL: convert Shorts & youtu.be to canonical watch URL for maximum compatibility
+        $canonicalUrl = $url;
+        if (preg_match('/(?:shorts\/|v\/|watch\?v=|\/embed\/|youtu\.be\/)([a-zA-Z0-9_\-]{11})/', $url, $m)) {
+            if (!str_contains($url, 'music.youtube.com')) {
+                $canonicalUrl = 'https://www.youtube.com/watch?v=' . $m[1];
+            }
+        }
+
         $cacheDir = \App\Config\Config::getStoragePath('cache' . DIRECTORY_SEPARATOR . 'yt_meta');
         if (!is_dir($cacheDir)) {
             @mkdir($cacheDir, 0777, true);
         }
-        $cacheFile = $cacheDir . DIRECTORY_SEPARATOR . md5($url) . '.json';
+        $cacheFile = $cacheDir . DIRECTORY_SEPARATOR . md5($canonicalUrl) . '.json';
         $data = null;
         if (file_exists($cacheFile) && (time() - filemtime($cacheFile) < 1800)) {
             $cachedContent = @file_get_contents($cacheFile);
@@ -42,36 +50,66 @@ class YouTubeDownloader implements DownloaderInterface
         }
 
         if (!$data) {
-            $safeUrl = MediaCompressor::escapeArg($url);
+            $safeUrl = MediaCompressor::escapeArg($canonicalUrl);
             $baseCmd = MediaCompressor::getYtDlpBaseCommand();
-            $command = "{$baseCmd} --skip-download --dump-single-json {$safeUrl} 2>&1";
+            $command = "{$baseCmd} --skip-download --dump-single-json {$safeUrl}";
             
-            $output = shell_exec($command);
-            if (!$output) {
-                throw new \RuntimeException('Gagal mengekstrak video YouTube. Pastikan URL valid dan video bersifat publik.');
+            $stdout = '';
+            $stderr = '';
+            $descriptors = [
+                0 => ['pipe', 'r'],
+                1 => ['pipe', 'w'], // stdout: clean JSON
+                2 => ['pipe', 'w']  // stderr: logs & error diagnostic
+            ];
+
+            $proc = @proc_open($command, $descriptors, $pipes);
+            if (is_resource($proc)) {
+                @fclose($pipes[0]);
+                $stdout = (string)@stream_get_contents($pipes[1]);
+                $stderr = (string)@stream_get_contents($pipes[2]);
+                @fclose($pipes[1]);
+                @fclose($pipes[2]);
+                @proc_close($proc);
+            } else {
+                // Fallback to shell_exec if proc_open is restricted
+                $combinedOutput = (string)@shell_exec($command . ' 2>&1');
+                $stdout = $combinedOutput;
+                $stderr = $combinedOutput;
             }
 
-            // Clean any non-json lines before and after the json object
-            $jsonStart = strpos($output, '{');
-            $jsonEnd = strrpos($output, '}');
-            if ($jsonStart !== false && $jsonEnd !== false && $jsonEnd > $jsonStart) {
-                $cleanJson = substr($output, $jsonStart, $jsonEnd - $jsonStart + 1);
-                $data = json_decode($cleanJson, true);
+            // First attempt: direct json_decode on clean stdout
+            $stdoutTrim = trim($stdout);
+            if (!empty($stdoutTrim) && str_starts_with($stdoutTrim, '{') && str_ends_with($stdoutTrim, '}')) {
+                $data = json_decode($stdoutTrim, true);
+            }
+
+            // Second attempt: extract JSON substring if extra output was captured
+            if (!$data || !isset($data['id'])) {
+                $jsonStart = strpos($stdout, '{');
+                $jsonEnd = strrpos($stdout, '}');
+                if ($jsonStart !== false && $jsonEnd !== false && $jsonEnd > $jsonStart) {
+                    $cleanJson = substr($stdout, $jsonStart, $jsonEnd - $jsonStart + 1);
+                    $data = json_decode($cleanJson, true);
+                }
             }
 
             if (!$data || !isset($data['id'])) {
-                $errorMsg = 'Video YouTube / YouTube Music tidak ditemukan atau berstatus privat/dibatasi usia.';
-                if (str_contains($output, 'Private video')) {
+                $fullLog = $stderr . "\n" . $stdout;
+                $errorMsg = 'Video YouTube / Shorts tidak dapat dianalisis. Pastikan tautan valid dan video bersifat publik.';
+
+                if (str_contains($fullLog, 'Private video')) {
                     $errorMsg = 'Video/lagu YouTube berstatus privat.';
-                } elseif (str_contains($output, 'Video unavailable')) {
-                    $errorMsg = 'Video/lagu YouTube tidak tersedia atau telah dihapus.';
-                } elseif (str_contains($output, 'Sign in to confirm you’re not a bot') || str_contains($output, 'Sign in to confirm you\'re not a bot')) {
+                } elseif (str_contains($fullLog, 'Video unavailable') || str_contains($fullLog, 'This video is not available')) {
+                    $errorMsg = 'Video YouTube tidak tersedia atau telah dihapus oleh pengunggah.';
+                } elseif (str_contains($fullLog, 'Too Many Requests') || str_contains($fullLog, 'HTTP Error 429') || str_contains($fullLog, '429')) {
+                    $errorMsg = 'Server YouTube membatasi permintaan sementara (Rate Limit / 429). Silakan tunggu 10 detik dan coba kembali.';
+                } elseif (str_contains($fullLog, 'Sign in to confirm you’re not a bot') || str_contains($fullLog, 'Sign in to confirm you\'re not a bot')) {
                     $errorMsg = 'YouTube meminta verifikasi bot/anti-spam. Silakan coba kembali beberapa saat lagi.';
-                } elseif (str_contains($output, 'age-restricted') || str_contains($output, 'Sign in to confirm your age')) {
+                } elseif (str_contains($fullLog, 'age-restricted') || str_contains($fullLog, 'Sign in to confirm your age')) {
                     $errorMsg = 'Video YouTube ini memiliki batasan usia (age-restricted).';
-                } elseif (str_contains($output, 'Join this channel') || str_contains($output, 'members-only')) {
+                } elseif (str_contains($fullLog, 'Join this channel') || str_contains($fullLog, 'members-only')) {
                     $errorMsg = 'Video YouTube ini khusus member channel (berbayar).';
-                } elseif (preg_match('/ERROR:\s*(?:\[youtube\]\s*)?([^\r\n]+)/i', $output, $errMatches)) {
+                } elseif (preg_match('/ERROR:\s*(?:\[youtube\]\s*)?([^\r\n]+)/i', $fullLog, $errMatches)) {
                     $errorMsg = 'YouTube: ' . trim($errMatches[1]);
                 }
                 throw new \RuntimeException($errorMsg);

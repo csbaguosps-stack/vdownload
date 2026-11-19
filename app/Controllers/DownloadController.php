@@ -37,6 +37,11 @@ class DownloadController extends Controller
      */
     public function fetch(): void
     {
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(60);
+        }
+        @ini_set('max_execution_time', '60');
+
         $input = json_decode(file_get_contents('php://input'), true);
         $url = trim((string)($input['url'] ?? ($_POST['url'] ?? '')));
 
