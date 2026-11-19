@@ -542,58 +542,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
 
                 btn.addEventListener('click', (e) => {
-                    if (btn.classList.contains('is-preparing')) {
-                        e.preventDefault();
-                        return;
-                    }
-
                     if (dl.type === 'zip') {
                         showToast('📦 Mengemas dan mengunduh paket ZIP semua foto...', 'info');
                         return;
                     }
 
-                    e.preventDefault();
-
-                    const originalHtml = btn.innerHTML;
-                    btn.classList.add('is-preparing');
-
-                    if (dl.needs_merge) {
-                        btn.innerHTML = `
-                            <div class="d-flex align-items-center gap-2 text-start flex-grow-1 min-w-0 me-2">
-                                <span class="spinner-border spinner-border-sm text-light flex-shrink-0" role="status"></span>
-                                <span class="btn-download-title text-break">Menyiapkan & Mengunduh Berkas HD...</span>
-                            </div>
-                            <span class="badge download-pill-badge flex-shrink-0">
-                                Mengunduh...
-                            </span>
-                        `;
-
-                        showToast('🎬 Menggabungkan video & audio kualitas tinggi, unduhan segera dimulai...', 'info');
-                        triggerBrowserDownload(streamUrl, dl.filename || '');
-
-                        setTimeout(() => {
-                            btn.classList.remove('is-preparing');
-                            btn.innerHTML = originalHtml;
-                        }, 5000);
+                    // Direct Native Download: browser natively downloads directly without JS delay
+                    if (dl.type === 'image') {
+                        showToast('🖼️ Mengunduh foto kualitas HD...', 'success');
+                    } else if (dl.type === 'audio') {
+                        showToast('🎵 Mengunduh berkas audio musik...', 'success');
+                    } else if (dl.filename && (dl.filename.includes('1080p') || dl.filename.includes('720p'))) {
+                        showToast('🚀 Mengunduh video Full HD langsung...', 'success');
+                    } else if (dl.filename && (dl.filename.includes('480p') || dl.filename.includes('560p'))) {
+                        showToast('⚡ Mengunduh video SD 560p/480p langsung...', 'success');
+                    } else if (dl.filename && (dl.filename.includes('360p') || dl.filename.includes('_SD'))) {
+                        showToast('⚡ Mengunduh video SD 360p (Instan)...', 'success');
                     } else {
-                        if (dl.type === 'image') {
-                            showToast('🖼️ Mengunduh foto kualitas HD...', 'success');
-                        } else if (dl.type === 'audio') {
-                            showToast('🎵 Mengunduh berkas audio musik...', 'success');
-                        } else if (dl.filename && (dl.filename.includes('480p') || dl.filename.includes('560p'))) {
-                            showToast('⚡ Mengunduh video SD 560p/480p (Instan)...', 'success');
-                        } else if (dl.filename && (dl.filename.includes('360p') || dl.filename.includes('_SD'))) {
-                            showToast('⚡ Mengunduh video SD 360p (Instan)...', 'success');
-                        } else {
-                            showToast('⚡ Mengunduh berkas langsung...', 'success');
-                        }
-                        triggerBrowserDownload(streamUrl, dl.filename || '');
-
-                        setTimeout(() => {
-                            btn.classList.remove('is-preparing');
-                            btn.innerHTML = originalHtml;
-                        }, 2500);
+                        showToast('⚡ Mengunduh berkas langsung...', 'success');
                     }
+
+                    btn.classList.add('opacity-75');
+                    setTimeout(() => {
+                        btn.classList.remove('opacity-75');
+                    }, 2000);
                 });
 
                 downloadButtonsList.appendChild(btn);

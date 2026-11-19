@@ -275,16 +275,22 @@ class DownloadController extends Controller
                     || (!empty($audioUrl) && $audioUrl !== $fileUrl);
 
                 if ($shouldMerge) {
-                    // STEP A: Instant direct stream merge using FFmpeg stream copy (takes ~1-2 seconds!)
-                    if (!empty($audioUrl) && !empty($fileUrl) && $audioUrl !== $fileUrl) {
-                        $fastFile = MediaCompressor::fastMergeVideoAudio($fileUrl, $audioUrl, md5($sourceUrl . '_fast_' . $maxH));
-                        if ($fastFile && file_exists($fastFile) && filesize($fastFile) > 10240) {
-                            $this->streamLocalFile($fastFile, $fileName, 'video/mp4', $isHead);
-                            exit;
-                        }
+                    // STEP A: If cached merged file already exists, stream it immediately!
+                    $cacheKey = md5($sourceUrl . '_fast_' . $maxH);
+                    $cachedFile = MediaCompressor::getCacheDir() . DIRECTORY_SEPARATOR . $cacheKey . '.mp4';
+                    if (file_exists($cachedFile) && filesize($cachedFile) > 10240) {
+                        $this->streamLocalFile($cachedFile, $fileName, 'video/mp4', $isHead);
+                        exit;
                     }
 
-                    // STEP B: Fallback to yt-dlp dedicated merge if direct stream URLs were not provided or expired
+                    // STEP B: Live streaming pipe merge directly to browser in real-time (Time-to-first-byte: ~0.2s - 2s!)
+                    // The browser begins downloading immediately without waiting for server to finish downloading 1GB first!
+                    if (!empty($audioUrl) && !empty($fileUrl) && $audioUrl !== $fileUrl) {
+                        $this->streamLiveMergedVideo($fileUrl, $audioUrl, $fileName, $isHead);
+                        exit;
+                    }
+
+                    // STEP C: Fallback to yt-dlp dedicated merge if audio_url was not attached
                     $targetFile = MediaCompressor::mergeYtVideo($sourceUrl, $maxH);
                     if ($targetFile && file_exists($targetFile) && filesize($targetFile) > 1024) {
                         $this->streamLocalFile($targetFile, $fileName, 'video/mp4', $isHead);
@@ -452,6 +458,55 @@ class DownloadController extends Controller
                     @unlink($filePath);
                 }
             }
+        }
+    }
+
+    /**
+     * Live fragmented MP4 merge streamed directly to browser in real-time (Time to first byte: ~0.2s - 2s)
+     * The user's download starts immediately without waiting for server to finish downloading the whole file first!
+     */
+    private function streamLiveMergedVideo(string $videoUrl, string $audioUrl, string $downloadName, bool $isHead): void
+    {
+        $ffmpeg = MediaCompressor::getFfmpegPath();
+        if (!$ffmpeg) {
+            return;
+        }
+
+        while (ob_get_level()) {
+            @ob_end_clean();
+        }
+
+        header('Content-Description: File Transfer');
+        header('Content-Type: video/mp4');
+        header('Content-Disposition: attachment; filename="' . $downloadName . '"');
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+        header('Pragma: public');
+        header('X-VDownload-Direct-Live: 1');
+
+        if ($isHead) {
+            exit;
+        }
+
+        $nullDev = (strncasecmp(PHP_OS, 'WIN', 3) === 0) ? '2>NUL' : '2>/dev/null';
+        $cmd = MediaCompressor::escapeArg($ffmpeg)
+            . ' -y -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" -referer "https://www.youtube.com/"'
+            . ' -i ' . MediaCompressor::escapeArg($videoUrl)
+            . ' -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" -referer "https://www.youtube.com/"'
+            . ' -i ' . MediaCompressor::escapeArg($audioUrl)
+            . ' -c:v copy -c:a aac -b:a 192k -movflags frag_keyframe+empty_moov+default_base_moof -f mp4 pipe:1 ' . $nullDev;
+
+        $fp = @popen($cmd, 'rb');
+        if ($fp) {
+            while (!feof($fp) && !connection_aborted()) {
+                $buffer = @fread($fp, 65536);
+                if ($buffer !== false && strlen($buffer) > 0) {
+                    echo $buffer;
+                    @flush();
+                }
+            }
+            @pclose($fp);
+            exit;
         }
     }
 
